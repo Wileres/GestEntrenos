@@ -73,8 +73,8 @@ final class Installer
         if ($c['db_name'] === '' || $c['db_user'] === '' || !ctype_digit($c['db_port'])) {
             $errors[] = 'Les dades de connexió a la base de dades són incompletes.';
         }
-        if ($c['admin_user'] === '' || strlen($c['admin_pass']) < 10) {
-            $errors[] = 'L\'usuari administrador i una contrasenya inicial (mínim 10 caràcters) són obligatoris.';
+        if ($c['admin_user'] === '' || strlen($c['admin_pass']) < 8) {
+            $errors[] = 'L\'usuari administrador i una contrasenya inicial (mínim 8 caràcters) són obligatoris.';
         }
         if ($errors) {
             return $errors;

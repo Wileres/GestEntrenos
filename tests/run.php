@@ -518,6 +518,28 @@ t('El logotip es serveix públicament (pantalla d\'accés)', $lg['status'] === 2
 $r = $admin->request('POST', '/admin/logotip', ['_csrf' => $admin->csrf('/admin/logotip'), 'logo' => new CURLFile($pdfPath, 'application/pdf', 'logo.pdf')]);
 t('Logotip amb tipus no permès rebutjat', $r['status'] === 303 && str_contains($admin->get('/admin/logotip')['body'], 'no està permès'));
 
+section('Pàgina d\'equip, camps buits i contrasenya mínima');
+$r = $anna->get('/');
+t('El panell de l\'entrenador té un botó per equip', str_contains($r['body'], '/equips/' . $catCadet . '"'));
+$r = $anna->get('/equips/' . $catCadet);
+t('La pàgina de l\'equip mostra els seus entrenaments publicats', $r['status'] === 200 && str_contains($r['body'], 'Sessió Cadet') && !str_contains($r['body'], 'Esborrany Cadet'));
+$exCadet = (int) Db::value("SELECT id FROM exercises WHERE name = 'Inactiu secret'");
+Db::run('UPDATE exercises SET is_active = 1 WHERE id = ?', [$exCadet]);
+$r = $anna->get('/equips/' . $catCadet);
+t('La pàgina de l\'equip mostra els exercicis de l\'equip', str_contains($r['body'], 'Inactiu secret'));
+t('No mostra exercicis d\'altres equips', !str_contains($r['body'], 'Rondo 4x2'));
+t('Un equip no assignat → 404', $anna->get('/equips/' . $catInfantil)['status'] === 404);
+$r = $anna->get("/exercicis/$exCadet");
+t('Camps buits de l\'exercici no mostren el títol', !str_contains($r['body'], 'Objectiu') && !str_contains($r['body'], 'Material') && !str_contains($r['body'], 'Dificultat') && !str_contains($r['body'], 'Jugadors'));
+$r = $anna->get("/exercicis/$exBenjami");
+t('Camps plens de l\'exercici sí que es mostren', str_contains($r['body'], 'Objectiu') && str_contains($r['body'], 'Material') && str_contains($r['body'], 'Dificultat'));
+$v = (new Validator(['p' => 'abcdefg1', 'p2' => 'abcdefg1']))->password('p', 'p2');
+t('Contrasenya de 8 caràcters amb lletres i números acceptada', !$v->fails());
+$v = (new Validator(['p' => 'abcdef1', 'p2' => 'abcdef1']))->password('p', 'p2');
+t('Contrasenya de 7 caràcters rebutjada', $v->fails());
+$v = (new Validator(['p' => 'abcdefgh', 'p2' => 'abcdefgh']))->password('p', 'p2');
+t('Contrasenya sense números rebutjada', $v->fails());
+
 section('Sessions, desactivació i tancament');
 Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$annaId]);
 t('Un entrenador desactivat perd l\'accés immediatament', $anna->get('/')['status'] === 303);

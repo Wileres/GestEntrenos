@@ -71,6 +71,17 @@ final class Training
         return Db::all("SELECT t.id, t.title, t.session_date, t.start_time, t.status FROM training_sessions t WHERE $w ORDER BY t.session_date, t.start_time LIMIT $limit", $params);
     }
 
+    /** Entrenaments publicats d'un equip (categoria), ordenats per data. */
+    public static function publishedForCategory(int $categoryId): array
+    {
+        return Db::all(
+            "SELECT t.id, t.title, t.session_date, t.start_time, t.duration_minutes, t.status
+             FROM training_sessions t JOIN training_categories tc ON tc.training_id = t.id
+             WHERE tc.category_id = ? AND t.status = 'published' ORDER BY t.session_date, t.start_time",
+            [$categoryId]
+        );
+    }
+
     public static function latest(int $limit = 5): array
     {
         return Db::all('SELECT id, title, session_date, start_time, status FROM training_sessions ORDER BY id DESC LIMIT ' . $limit);

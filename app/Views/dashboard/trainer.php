@@ -7,7 +7,10 @@
     </section>
     <section class="card"><h2>Els meus equips</h2>
         <?php if ($categories): ?>
-            <ul class="tags"><?php foreach ($categories as $c): ?><li><?= e($c['name']) ?></li><?php endforeach; ?>
+            <div class="team-buttons">
+            <?php foreach ($categories as $c): ?><a class="btn btn-primary" href="<?= e(url('/equips/' . $c['id'])) ?>"><?= e($c['name']) ?></a><?php endforeach; ?>
+            </div>
+            <p class="muted">Fes clic en un equip per veure'n els exercicis i els entrenaments.</p>
         <?php else: ?><p class="muted">Encara no tens equips assignats.</p><?php endif; ?>
     </section>
     <section class="card"><h2>Últims exercicis</h2>

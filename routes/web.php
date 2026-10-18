@@ -8,6 +8,7 @@ use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\ExerciseController;
 use App\Controllers\FileController;
+use App\Controllers\TeamController;
 use App\Controllers\TrainerController;
 use App\Controllers\TrainingController;
 use App\Services\Router;
@@ -31,6 +32,7 @@ return static function (Router $r): void {
     $r->get('/compte/contrasenya', [AuthController::class, 'showChangePassword'], ['auth']);
     $r->post('/compte/contrasenya', [AuthController::class, 'changePassword'], ['auth']);
 
+    $r->get('/equips/{id}', [TeamController::class, 'show'], ['auth']);
     $r->get('/exercicis', [ExerciseController::class, 'index'], ['auth']);
     $r->get('/exercicis/nou', [ExerciseController::class, 'create'], ['admin']);
     $r->post('/exercicis', [ExerciseController::class, 'store'], ['admin']);

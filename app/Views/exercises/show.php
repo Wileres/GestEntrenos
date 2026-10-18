@@ -13,11 +13,11 @@
         <h2>Detalls</h2>
         <dl class="details">
             <dt>Equips</dt><dd><?= e(implode(', ', array_column($extra, 'name')) ?: '—') ?></dd>
-            <dt>Objectiu</dt><dd><?= e($e['objective'] ?: '—') ?></dd>
-            <dt>Durada</dt><dd><?= $e['duration_minutes'] ? (int) $e['duration_minutes'] . ' min' : '—' ?></dd>
-            <dt>Jugadors</dt><dd><?= e($e['players'] ?: '—') ?></dd>
-            <dt>Material</dt><dd><?= e($e['material'] ?: '—') ?></dd>
-            <dt>Dificultat</dt><dd><?= e(\App\Helpers\Labels::difficulty($e['difficulty']) ?: '—') ?></dd>
+            <?php if ($e['objective']): ?><dt>Objectiu</dt><dd><?= e($e['objective']) ?></dd><?php endif; ?>
+            <?php if ($e['duration_minutes']): ?><dt>Durada</dt><dd><?= (int) $e['duration_minutes'] ?> min</dd><?php endif; ?>
+            <?php if ($e['players']): ?><dt>Jugadors</dt><dd><?= e($e['players']) ?></dd><?php endif; ?>
+            <?php if ($e['material']): ?><dt>Material</dt><dd><?= e($e['material']) ?></dd><?php endif; ?>
+            <?php if ($e['difficulty']): ?><dt>Dificultat</dt><dd><?= e(\App\Helpers\Labels::difficulty($e['difficulty'])) ?></dd><?php endif; ?>
             <dt>Estat</dt><dd><?= active_badge($e['is_active']) ?></dd>
             <dt>Creat per</dt><dd><?= e($e['creator_name']) ?> · <?= e(fmt_date($e['created_at'])) ?></dd>
             <dt>Modificat</dt><dd><?= e(fmt_datetime($e['updated_at'])) ?></dd>

@@ -201,3 +201,4 @@ legend { font-weight: 600; padding-inline: var(--space-1); }
 @media (forced-colors: active) { .btn { border: 1px solid ButtonText; } }
 @media print { .app-header, .app-footer, .btn, .filters { display: none; } body { background: #fff; } }
 .auth-wide { max-width: 620px; }
+.team-buttons { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
