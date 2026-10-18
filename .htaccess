@@ -1,0 +1,7 @@
+# Alternativa per a hostatges que no permeten canviar l'arrel web a public/.
+# Recomanat: apuntar l'arrel web directament a public/.
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+</IfModule>
