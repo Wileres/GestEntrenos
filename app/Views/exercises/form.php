@@ -1,4 +1,3 @@
-<?php $catOpts = []; foreach ($categories as $c) { $catOpts[$c['id']] = $c['name']; } ?>
 <nav class="breadcrumb"><a href="<?= e(url('/exercicis')) ?>">Exercicis</a> / <?= e($title) ?></nav>
 <h1><?= e($title) ?></h1>
 <form method="post" action="<?= e(url($exercise ? '/exercicis/' . $exercise['id'] : '/exercicis')) ?>" enctype="multipart/form-data" class="stack" data-loading>
@@ -7,14 +6,14 @@
         <?= input_field('name', 'Nom', ['required' => true, 'attrs' => ['maxlength' => 150]]) ?>
         <?= input_field('description', 'Explicació', ['type' => 'textarea', 'rows' => 8, 'required' => true]) ?>
         <div class="grid grid-2">
-            <?= select_field('category_id', 'Categoria principal', $catOpts, ['required' => true, 'blank' => 'Selecciona una categoria']) ?>
             <?= select_field('difficulty', 'Dificultat', \App\Helpers\Labels::DIFFICULTY, ['blank' => 'Sense especificar']) ?>
             <?= input_field('objective', 'Objectiu', ['attrs' => ['maxlength' => 255]]) ?>
             <?= input_field('material', 'Material necessari', ['attrs' => ['maxlength' => 255]]) ?>
             <?= input_field('duration_minutes', 'Durada estimada (minuts)', ['type' => 'number', 'attrs' => ['min' => 1, 'max' => 600]]) ?>
             <?= input_field('players', 'Nombre de jugadors', ['type' => 'number', 'attrs' => ['min' => 1, 'max' => 200]]) ?>
         </div>
-        <fieldset><legend>Categories addicionals</legend>
+        <fieldset><legend>Equips <span class="req" aria-hidden="true">*</span></legend>
+            <?php if (field_error('extra_categories')): ?><p class="field-error"><?= e(field_error('extra_categories')) ?></p><?php endif; ?>
             <div class="checks"><?php foreach ($categories as $c): ?>
                 <label class="check"><input type="checkbox" name="extra_categories[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('extra_categories', $c['id'])) ?>> <?= e($c['name']) ?></label>
             <?php endforeach; ?></div>

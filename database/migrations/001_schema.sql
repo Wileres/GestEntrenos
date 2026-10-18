@@ -51,21 +51,6 @@ CREATE TABLE IF NOT EXISTS categories (
     KEY idx_categories_order (sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS teams (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    category_id INT UNSIGNED NOT NULL,
-    name VARCHAR(80) NOT NULL,
-    season VARCHAR(20) NOT NULL,
-    description TEXT NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_teams_cat_name_season (category_id, name, season),
-    KEY idx_teams_season (season),
-    CONSTRAINT fk_teams_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS user_categories (
     user_id INT UNSIGNED NOT NULL,
     category_id INT UNSIGNED NOT NULL,
@@ -73,15 +58,6 @@ CREATE TABLE IF NOT EXISTS user_categories (
     KEY idx_uc_category (category_id),
     CONSTRAINT fk_uc_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
     CONSTRAINT fk_uc_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS user_teams (
-    user_id INT UNSIGNED NOT NULL,
-    team_id INT UNSIGNED NOT NULL,
-    PRIMARY KEY (user_id, team_id),
-    KEY idx_ut_team (team_id),
-    CONSTRAINT fk_ut_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
-    CONSTRAINT fk_ut_team FOREIGN KEY (team_id) REFERENCES teams (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS exercises (
@@ -160,15 +136,6 @@ CREATE TABLE IF NOT EXISTS training_categories (
     KEY idx_tc_category (category_id),
     CONSTRAINT fk_tc_training FOREIGN KEY (training_id) REFERENCES training_sessions (id) ON DELETE CASCADE,
     CONSTRAINT fk_tc_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS training_teams (
-    training_id INT UNSIGNED NOT NULL,
-    team_id INT UNSIGNED NOT NULL,
-    PRIMARY KEY (training_id, team_id),
-    KEY idx_tt_team (team_id),
-    CONSTRAINT fk_tt_training FOREIGN KEY (training_id) REFERENCES training_sessions (id) ON DELETE CASCADE,
-    CONSTRAINT fk_tt_team FOREIGN KEY (team_id) REFERENCES teams (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS training_exercises (

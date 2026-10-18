@@ -43,8 +43,7 @@ final class User
         $pg = Paginator::make($total, $page);
         $rows = Db::all(
             'SELECT u.id, u.first_name, u.last_name, u.email, u.is_active, u.password_hash IS NOT NULL AS has_password,
-                    (SELECT COUNT(*) FROM user_categories WHERE user_id = u.id) AS categories_count,
-                    (SELECT COUNT(*) FROM user_teams WHERE user_id = u.id) AS teams_count '
+                    (SELECT COUNT(*) FROM user_categories WHERE user_id = u.id) AS categories_count '
             . self::TRAINER_FROM . " WHERE $w ORDER BY u.last_name, u.first_name LIMIT {$pg->perPage} OFFSET {$pg->offset}",
             $params
         );
@@ -82,36 +81,17 @@ final class User
         return array_map('intval', Db::column('SELECT category_id FROM user_categories WHERE user_id = ?', [$userId]));
     }
 
-    public static function teamIds(int $userId): array
-    {
-        return array_map('intval', Db::column('SELECT team_id FROM user_teams WHERE user_id = ?', [$userId]));
-    }
-
     public static function categories(int $userId): array
     {
         return Db::all('SELECT c.id, c.name FROM categories c JOIN user_categories uc ON uc.category_id = c.id WHERE uc.user_id = ? ORDER BY c.sort_order', [$userId]);
     }
 
-    public static function teams(int $userId): array
+    public static function syncRelations(int $userId, array $categoryIds): void
     {
-        return Db::all(
-            'SELECT t.id, t.name, t.season, c.name AS category_name FROM teams t
-             JOIN user_teams ut ON ut.team_id = t.id JOIN categories c ON c.id = t.category_id
-             WHERE ut.user_id = ? ORDER BY c.sort_order, t.name',
-            [$userId]
-        );
-    }
-
-    public static function syncRelations(int $userId, array $categoryIds, array $teamIds): void
-    {
-        Db::transaction(function () use ($userId, $categoryIds, $teamIds) {
+        Db::transaction(function () use ($userId, $categoryIds) {
             Db::run('DELETE FROM user_categories WHERE user_id = ?', [$userId]);
-            Db::run('DELETE FROM user_teams WHERE user_id = ?', [$userId]);
             foreach ($categoryIds as $c) {
                 Db::insert('user_categories', ['user_id' => $userId, 'category_id' => $c]);
-            }
-            foreach ($teamIds as $t) {
-                Db::insert('user_teams', ['user_id' => $userId, 'team_id' => $t]);
             }
         });
     }

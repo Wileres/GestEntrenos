@@ -12,8 +12,7 @@
     <section class="card">
         <h2>Detalls</h2>
         <dl class="details">
-            <dt>Categoria principal</dt><dd><?= e($e['category_name']) ?></dd>
-            <?php if ($extra): ?><dt>Altres categories</dt><dd><?= e(implode(', ', array_column($extra, 'name'))) ?></dd><?php endif; ?>
+            <dt>Equips</dt><dd><?= e(implode(', ', array_column($extra, 'name')) ?: '—') ?></dd>
             <dt>Objectiu</dt><dd><?= e($e['objective'] ?: '—') ?></dd>
             <dt>Durada</dt><dd><?= $e['duration_minutes'] ? (int) $e['duration_minutes'] . ' min' : '—' ?></dd>
             <dt>Jugadors</dt><dd><?= e($e['players'] ?: '—') ?></dd>

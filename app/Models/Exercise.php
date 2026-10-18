@@ -27,8 +27,8 @@ final class Exercise
             }
         }
         if ((int) ($f['category'] ?? 0) > 0) {
-            $where[] = '(e.category_id = ? OR EXISTS (SELECT 1 FROM exercise_categories ec WHERE ec.exercise_id = e.id AND ec.category_id = ?))';
-            array_push($params, (int) $f['category'], (int) $f['category']);
+            $where[] = 'EXISTS (SELECT 1 FROM exercise_categories ec WHERE ec.exercise_id = e.id AND ec.category_id = ?)';
+            $params[] = (int) $f['category'];
         }
         if (isset(\App\Helpers\Labels::DIFFICULTY[$f['difficulty'] ?? ''])) {
             $where[] = 'e.difficulty = ?';
@@ -42,8 +42,8 @@ final class Exercise
         $total = (int) Db::value("SELECT COUNT(*) FROM exercises e $w", $params);
         $pg = Paginator::make($total, $f['page'] ?? 1);
         $rows = Db::all(
-            "SELECT e.id, e.name, e.objective, e.duration_minutes, e.players, e.material, e.difficulty, e.is_active, c.name AS category_name
-             FROM exercises e JOIN categories c ON c.id = e.category_id $w
+            "SELECT e.id, e.name, e.objective, e.duration_minutes, e.players, e.material, e.difficulty, e.is_active, (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order SEPARATOR ', ') FROM exercise_categories ec JOIN categories c ON c.id = ec.category_id WHERE ec.exercise_id = e.id) AS category_name
+             FROM exercises e $w
              ORDER BY e.name LIMIT {$pg->perPage} OFFSET {$pg->offset}",
             $params
         );
@@ -53,8 +53,8 @@ final class Exercise
     public static function find(int $id): ?array
     {
         return Db::one(
-            'SELECT e.*, c.name AS category_name, CONCAT(u.first_name, " ", u.last_name) AS creator_name
-             FROM exercises e JOIN categories c ON c.id = e.category_id JOIN users u ON u.id = e.created_by WHERE e.id = ?',
+            'SELECT e.*, CONCAT(u.first_name, " ", u.last_name) AS creator_name
+             FROM exercises e JOIN users u ON u.id = e.created_by WHERE e.id = ?',
             [$id]
         );
     }
@@ -86,7 +86,7 @@ final class Exercise
     {
         $n = fn (string $k) => ($d[$k] ?? '') !== '' ? $d[$k] : null;
         $data = [
-            'name' => $d['name'], 'description' => $d['description'], 'category_id' => (int) $d['category_id'],
+            'name' => $d['name'], 'description' => $d['description'], 'category_id' => (int) $d['extra_categories'][0],
             'objective' => $n('objective'), 'duration_minutes' => $n('duration_minutes'), 'players' => $n('players'),
             'material' => $n('material'), 'difficulty' => $n('difficulty'),
             'is_active' => $d['is_active'] ? 1 : 0, 'updated_at' => Db::now(),
@@ -99,9 +99,7 @@ final class Exercise
             }
             Db::run('DELETE FROM exercise_categories WHERE exercise_id = ?', [$id]);
             foreach ($d['extra_categories'] as $c) {
-                if ($c !== (int) $d['category_id']) {
-                    Db::insert('exercise_categories', ['exercise_id' => $id, 'category_id' => $c]);
-                }
+                Db::insert('exercise_categories', ['exercise_id' => $id, 'category_id' => $c]);
             }
             return $id;
         });
@@ -124,11 +122,11 @@ final class Exercise
 
     public static function catalog(): array
     {
-        return Db::all('SELECT e.id, e.name, c.name AS category_name FROM exercises e JOIN categories c ON c.id = e.category_id WHERE e.is_active = 1 ORDER BY e.name');
+        return Db::all('SELECT e.id, e.name, (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order SEPARATOR ", ") FROM exercise_categories ec JOIN categories c ON c.id = ec.category_id WHERE ec.exercise_id = e.id) AS category_name FROM exercises e WHERE e.is_active = 1 ORDER BY e.name');
     }
 
     public static function latest(int $limit = 5): array
     {
-        return Db::all('SELECT e.id, e.name, c.name AS category_name FROM exercises e JOIN categories c ON c.id = e.category_id WHERE e.is_active = 1 ORDER BY e.id DESC LIMIT ' . $limit);
+        return Db::all('SELECT e.id, e.name, (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order SEPARATOR ", ") FROM exercise_categories ec JOIN categories c ON c.id = ec.category_id WHERE ec.exercise_id = e.id) AS category_name FROM exercises e WHERE e.is_active = 1 ORDER BY e.id DESC LIMIT ' . $limit);
     }
 }

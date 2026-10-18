@@ -21,14 +21,6 @@
             <?php endforeach; ?>
             </div>
         </fieldset>
-        <fieldset><legend>Equips assignats</legend>
-            <div class="checks">
-            <?php foreach ($teams as $t): ?>
-                <label class="check"><input type="checkbox" name="team_ids[]" value="<?= (int) $t['id'] ?>"<?= checked(in_old('team_ids', $t['id'])) ?>> <?= e($t['category_name'] . ' · ' . $t['name']) ?> <small class="muted">(<?= e($t['season']) ?>)</small></label>
-            <?php endforeach; ?>
-            <?php if (!$teams): ?><p class="muted">Encara no hi ha equips.</p><?php endif; ?>
-            </div>
-        </fieldset>
     </section>
     <div class="form-actions">
         <button class="btn btn-primary" type="submit"><?= $trainer ? 'Desa els canvis' : 'Crea l\'entrenador i envia l\'activació' ?></button>

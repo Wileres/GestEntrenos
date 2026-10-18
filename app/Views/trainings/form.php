@@ -22,11 +22,8 @@ $last = count($rows) - 1;
     </section>
     <section class="card">
         <?php if (field_error('category_ids')): ?><p class="field-error"><?= e(field_error('category_ids')) ?></p><?php endif; ?>
-        <fieldset><legend>Categories</legend><div class="checks"><?php foreach ($categories as $c): ?>
+        <fieldset><legend>Equips</legend><div class="checks"><?php foreach ($categories as $c): ?>
             <label class="check"><input type="checkbox" name="category_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('category_ids', $c['id'])) ?>> <?= e($c['name']) ?></label>
-        <?php endforeach; ?></div></fieldset>
-        <fieldset><legend>Equips</legend><div class="checks"><?php foreach ($teams as $t): ?>
-            <label class="check"><input type="checkbox" name="team_ids[]" value="<?= (int) $t['id'] ?>"<?= checked(in_old('team_ids', $t['id'])) ?>> <?= e($t['category_name'] . ' · ' . $t['name']) ?> <small class="muted">(<?= e($t['season']) ?>)</small></label>
         <?php endforeach; ?></div></fieldset>
     </section>
     <section class="card" id="exercicis">

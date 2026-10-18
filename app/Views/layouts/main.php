@@ -33,7 +33,6 @@ $club = \App\Services\SettingsService::clubName();
             <?php if ($admin): ?>
                 <a href="<?= e(url('/entrenadors')) ?>"<?= $active('/entrenadors') ?>>Entrenadors</a>
                 <a href="<?= e(url('/categories')) ?>"<?= $active('/categories') ?>>Categories</a>
-                <a href="<?= e(url('/equips')) ?>"<?= $active('/equips') ?>>Equips</a>
                 <details class="nav-menu">
                     <summary>Administració</summary>
                     <div class="nav-menu-list">

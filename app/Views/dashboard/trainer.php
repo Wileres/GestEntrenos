@@ -5,11 +5,10 @@
         <?php \App\Helpers\View::component('training_list', ['items' => $upcoming, 'empty' => 'No tens entrenaments programats.']); ?>
         <p><a href="<?= e(url('/entrenaments')) ?>">Tots els meus entrenaments</a></p>
     </section>
-    <section class="card"><h2>Les meves categories i equips</h2>
-        <?php if ($categories || $teams): ?>
+    <section class="card"><h2>Els meus equips</h2>
+        <?php if ($categories): ?>
             <ul class="tags"><?php foreach ($categories as $c): ?><li><?= e($c['name']) ?></li><?php endforeach; ?>
-            <?php foreach ($teams as $t): ?><li><?= e($t['name']) ?> <small>(<?= e($t['season']) ?>)</small></li><?php endforeach; ?></ul>
-        <?php else: ?><p class="muted">Encara no tens categories ni equips assignats.</p><?php endif; ?>
+        <?php else: ?><p class="muted">Encara no tens equips assignats.</p><?php endif; ?>
     </section>
     <section class="card"><h2>Últims exercicis</h2>
         <?php if ($exercises): ?><ul class="list"><?php foreach ($exercises as $e): ?>

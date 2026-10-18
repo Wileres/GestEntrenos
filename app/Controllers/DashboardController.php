@@ -21,7 +21,6 @@ final class DashboardController extends Controller
                 'stats' => [
                     'Entrenadors actius' => [User::countActiveTrainers(), '/entrenadors'],
                     'Categories' => [(int) Db::value('SELECT COUNT(*) FROM categories'), '/categories'],
-                    'Equips' => [(int) Db::value('SELECT COUNT(*) FROM teams'), '/equips'],
                     'Exercicis' => [(int) Db::value('SELECT COUNT(*) FROM exercises'), '/exercicis'],
                 ],
                 'upcoming' => Training::upcomingFor($u),
@@ -39,7 +38,6 @@ final class DashboardController extends Controller
             'title' => 'Panell principal',
             'upcoming' => Training::upcomingFor($u),
             'categories' => User::categories((int) $u['id']),
-            'teams' => User::teams((int) $u['id']),
             'exercises' => Exercise::latest(),
             'notifications' => Db::all(
                 "SELECT subject, created_at FROM email_logs WHERE recipient = ? AND status = 'sent' AND type LIKE 'training_%' ORDER BY id DESC LIMIT 5",

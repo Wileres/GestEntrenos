@@ -9,10 +9,9 @@ use App\Helpers\Paginator;
 
 final class Training
 {
-    /** Condició SQL que limita els entrenaments publicats a les categories/equips d'un entrenador. */
-    private const VISIBLE_TO_TRAINER = "t.status = 'published' AND (
-        EXISTS (SELECT 1 FROM training_categories tc JOIN user_categories uc ON uc.category_id = tc.category_id WHERE tc.training_id = t.id AND uc.user_id = :uid1)
-        OR EXISTS (SELECT 1 FROM training_teams tt JOIN user_teams ut ON ut.team_id = tt.team_id WHERE tt.training_id = t.id AND ut.user_id = :uid2))";
+    /** Condició SQL que limita els entrenaments publicats als equips (categories) d'un entrenador. */
+    private const VISIBLE_TO_TRAINER = "t.status = 'published' AND
+        EXISTS (SELECT 1 FROM training_categories tc JOIN user_categories uc ON uc.category_id = tc.category_id WHERE tc.training_id = t.id AND uc.user_id = :uid1)";
 
     public static function find(int $id): ?array
     {
@@ -25,7 +24,7 @@ final class Training
         if ($user['role'] === 'admin') {
             return self::find($id);
         }
-        return Db::one('SELECT t.* FROM training_sessions t WHERE t.id = :id AND ' . self::VISIBLE_TO_TRAINER, ['id' => $id, 'uid1' => $user['id'], 'uid2' => $user['id']]);
+        return Db::one('SELECT t.* FROM training_sessions t WHERE t.id = :id AND ' . self::VISIBLE_TO_TRAINER, ['id' => $id, 'uid1' => $user['id']]);
     }
 
     public static function search(array $user, array $f, int $page): array
@@ -34,7 +33,7 @@ final class Training
         $params = [];
         if ($user['role'] !== 'admin') {
             $where[] = self::VISIBLE_TO_TRAINER;
-            $params += ['uid1' => $user['id'], 'uid2' => $user['id']];
+            $params += ['uid1' => $user['id']];
         } elseif (isset(\App\Helpers\Labels::TRAINING_STATUS[$f['status'] ?? ''])) {
             $where[] = 't.status = :status';
             $params['status'] = $f['status'];
@@ -67,7 +66,7 @@ final class Training
         $w = "t.status IN ('published') AND t.session_date >= CURDATE()";
         if ($user['role'] !== 'admin') {
             $w = 't.session_date >= CURDATE() AND ' . self::VISIBLE_TO_TRAINER;
-            $params = ['uid1' => $user['id'], 'uid2' => $user['id']];
+            $params = ['uid1' => $user['id']];
         }
         return Db::all("SELECT t.id, t.title, t.session_date, t.start_time, t.status FROM training_sessions t WHERE $w ORDER BY t.session_date, t.start_time LIMIT $limit", $params);
     }
@@ -80,15 +79,6 @@ final class Training
     public static function categories(int $id): array
     {
         return Db::all('SELECT c.id, c.name FROM categories c JOIN training_categories tc ON tc.category_id = c.id WHERE tc.training_id = ? ORDER BY c.sort_order', [$id]);
-    }
-
-    public static function teams(int $id): array
-    {
-        return Db::all(
-            'SELECT t.id, CONCAT(t.name, " (", t.season, ")") AS name FROM teams t JOIN training_teams tt ON tt.team_id = t.id
-             JOIN categories c ON c.id = t.category_id WHERE tt.training_id = ? ORDER BY c.sort_order, t.name',
-            [$id]
-        );
     }
 
     public static function exercises(int $id): array
@@ -116,7 +106,7 @@ final class Training
     }
 
     /**
-     * @param array{categories:int[],teams:int[],exercises:array<int,array{exercise_id:int,duration:?int,notes:string}>} $rel
+     * @param array{categories:int[],exercises:array<int,array{exercise_id:int,duration:?int,notes:string}>} $rel
      */
     public static function save(?int $id, array $d, array $rel, int $userId): int
     {
@@ -133,13 +123,9 @@ final class Training
                 Db::update('training_sessions', $data, 'id = ?', [$id]);
             }
             Db::run('DELETE FROM training_categories WHERE training_id = ?', [$id]);
-            Db::run('DELETE FROM training_teams WHERE training_id = ?', [$id]);
             Db::run('DELETE FROM training_exercises WHERE training_id = ?', [$id]);
             foreach ($rel['categories'] as $c) {
                 Db::insert('training_categories', ['training_id' => $id, 'category_id' => $c]);
-            }
-            foreach ($rel['teams'] as $t) {
-                Db::insert('training_teams', ['training_id' => $id, 'team_id' => $t]);
             }
             foreach (array_values($rel['exercises']) as $pos => $ex) {
                 Db::insert('training_exercises', [

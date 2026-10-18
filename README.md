@@ -8,8 +8,8 @@ Tota la interfície, validacions i correus són en català.
 
 | Rol | Pot fer |
 |---|---|
-| **Administrador** | Gestionar entrenadors (alta amb correu d'activació, activar/desactivar, assignar categories i equips), categories, equips, exercicis (amb adjunts), entrenaments (exercicis ordenables, estats, adjunts, notificacions), configurar el SMTP, pujar el logotip, consultar el registre d'activitat i l'historial de correus. |
-| **Entrenador** | Activar el compte, iniciar sessió, recuperar/canviar la contrasenya, veure el perfil, les seves categories i equips, **tots els exercicis actius** i els **entrenaments publicats** de les seves categories o equips. |
+| **Administrador** | Gestionar entrenadors (alta amb correu d'activació, activar/desactivar, assignar categories), categories, exercicis (amb adjunts), entrenaments (exercicis ordenables, estats, adjunts, notificacions), configurar el SMTP, pujar el logotip, consultar el registre d'activitat i l'historial de correus. |
+| **Entrenador** | Activar el compte, iniciar sessió, recuperar/canviar la contrasenya, veure el perfil, les seves categories, **tots els exercicis actius** i els **entrenaments publicats** de les seves categories. |
 
 Estats d'un entrenament: *Esborrany*, *Publicat*, *Cancel·lat*, *Finalitzat*.
 
@@ -34,19 +34,13 @@ erDiagram
     users ||--o{ user_roles : té
     users ||--o{ user_categories : "assignada"
     categories ||--o{ user_categories : ""
-    users ||--o{ user_teams : "assignat"
-    teams ||--o{ user_teams : ""
-    categories ||--o{ teams : conté
-    categories ||--o{ exercises : "principal"
-    exercises ||--o{ exercise_categories : "addicionals"
+    exercises ||--o{ exercise_categories : "equips"
     categories ||--o{ exercise_categories : ""
     exercises ||--o{ exercise_files : adjunts
     users ||--o{ exercises : crea
     users ||--o{ training_sessions : crea
     training_sessions ||--o{ training_categories : ""
     categories ||--o{ training_categories : ""
-    training_sessions ||--o{ training_teams : ""
-    teams ||--o{ training_teams : ""
     training_sessions ||--o{ training_exercises : conté
     exercises ||--o{ training_exercises : ""
     training_sessions ||--o{ training_files : adjunts
@@ -88,11 +82,13 @@ Permisos: `storage/` i `.env` han de ser escrivibles pel servidor web i no acces
 ## Manual d'ús
 
 **Administrador**
-* *Entrenadors › Nou entrenador*: omple les dades i marca categories i equips. Rep un correu amb l'enllaç per definir la contrasenya (d'un sol ús). Des de la fitxa pots *reenviar l'activació* (genera un enllaç nou i invalida els anteriors) o *invalidar els enllaços*.
-* *Categories* i *Equips*: crea, edita, ordena, activa/desactiva. Una categoria amb relacions no es pot eliminar (es desactiva).
-* *Exercicis*: crea'ls amb categoria principal i addicionals, dades opcionals i fitxers (PDF, JPG, PNG, WEBP, DOCX, XLSX i MP4 si `ALLOW_MP4=true`).
+* *Entrenadors › Nou entrenador*: omple les dades i marca les seves categories. Rep un correu amb l'enllaç per definir la contrasenya (d'un sol ús). Des de la fitxa pots *reenviar l'activació* (genera un enllaç nou i invalida els anteriors) o *invalidar els enllaços*.
+* *Categories*: crea, edita, ordena, activa/desactiva (als exercicis i entrenaments es mostren com a «Equips»). Una categoria amb relacions no es pot eliminar (es desactiva).
+* *Exercicis*: crea'ls assignats a un o més equips (categories), amb dades opcionals i fitxers (PDF, JPG, PNG, WEBP, DOCX, XLSX i MP4 si `ALLOW_MP4=true`).
 * *Entrenaments*: crea'l com a esborrany, afegeix exercicis del catàleg amb els botons *Puja / Baixa / Treu* (funciona sense JavaScript), duració i observacions per exercici. *Publica* notifica per correu els entrenadors afectats (un sol correu per persona). *Cancel·la* també notifica. En editar un entrenament publicat, els canvis de data/hora es notifiquen sempre; la resta, si marques la casella.
 * *Administració*: configuració del correu, logotip, historial de correus i registre d'activitat.
+
+**Migració d'una instal·lació existent** (elimina els equips): executa `database/migrations/002_remove_teams.sql` sobre la BD.
 
 **Entrenador**: activa el compte des del correu, inicia sessió amb el correu i la contrasenya, i consulta el panell, els exercicis (cerca i filtres) i els seus entrenaments. Pot descarregar els adjunts autoritzats.
 

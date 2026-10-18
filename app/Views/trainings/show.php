@@ -16,8 +16,7 @@
             <dt>Hora d'inici</dt><dd><?= e(fmt_time($t['start_time'])) ?></dd>
             <dt>Durada</dt><dd><?= (int) $t['duration_minutes'] ?> min</dd>
             <dt>Temporada</dt><dd><?= e($t['season']) ?></dd>
-            <dt>Categories</dt><dd><?= e(implode(', ', array_column($categories, 'name')) ?: '—') ?></dd>
-            <dt>Equips</dt><dd><?= e(implode(', ', array_column($teams, 'name')) ?: '—') ?></dd>
+            <dt>Equips</dt><dd><?= e(implode(', ', array_column($categories, 'name')) ?: '—') ?></dd>
         </dl>
         <?php if ($t['description']): ?><h3>Descripció</h3><div class="prose"><?= nl2br(e($t['description'])) ?></div><?php endif; ?>
         <?php if ($t['notes']): ?><h3>Observacions</h3><div class="prose"><?= nl2br(e($t['notes'])) ?></div><?php endif; ?>

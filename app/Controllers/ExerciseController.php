@@ -73,17 +73,19 @@ final class ExerciseController extends Controller
     {
         $catIds = array_column(Category::all(), 'id');
         $d = [];
-        foreach (['name', 'description', 'category_id', 'objective', 'duration_minutes', 'players', 'material', 'difficulty'] as $k) {
+        foreach (['name', 'description', 'objective', 'duration_minutes', 'players', 'material', 'difficulty'] as $k) {
             $d[$k] = $r->str($k);
         }
         $d['is_active'] = $r->input('is_active') ? '1' : '0';
         $v = (new Validator($d))->required('name', 'Nom')->maxLen('name', 'Nom', 150)
             ->required('description', 'Explicació')->maxLen('description', 'Explicació', 20000)
-            ->inList('category_id', 'Categoria principal', $catIds)
             ->maxLen('objective', 'Objectiu', 255)->maxLen('material', 'Material', 255)
             ->intRange('duration_minutes', 'Durada', 1, 600)->intRange('players', 'Nombre de jugadors', 1, 200)
             ->inList('difficulty', 'Dificultat', array_keys(Labels::DIFFICULTY), false);
         $extra = $this->onlyKnown($r->intList('extra_categories'), $catIds);
+        if (!$extra) {
+            $v->error('extra_categories', 'Cal seleccionar almenys un equip.');
+        }
 
         $valid = [];
         foreach (FileService::normalize($r->files['files'] ?? null) as $f) {

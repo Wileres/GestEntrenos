@@ -17,4 +17,4 @@
     <?php endforeach; ?>
     </tbody>
 </table></div>
-<p class="muted">Les categories amb entrenadors, equips, exercicis o entrenaments relacionats no es poden eliminar; es poden desactivar.</p>
+<p class="muted">Les categories amb entrenadors, exercicis o entrenaments relacionats no es poden eliminar; es poden desactivar.</p>

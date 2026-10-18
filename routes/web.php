@@ -8,7 +8,6 @@ use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\ExerciseController;
 use App\Controllers\FileController;
-use App\Controllers\TeamController;
 use App\Controllers\TrainerController;
 use App\Controllers\TrainingController;
 use App\Services\Router;
@@ -68,13 +67,6 @@ return static function (Router $r): void {
     $r->get('/categories/{id}/editar', [CategoryController::class, 'edit'], ['admin']);
     $r->post('/categories/{id}', [CategoryController::class, 'update'], ['admin']);
     $r->post('/categories/{id}/eliminar', [CategoryController::class, 'delete'], ['admin']);
-
-    $r->get('/equips', [TeamController::class, 'index'], ['admin']);
-    $r->get('/equips/nou', [TeamController::class, 'create'], ['admin']);
-    $r->post('/equips', [TeamController::class, 'store'], ['admin']);
-    $r->get('/equips/{id}/editar', [TeamController::class, 'edit'], ['admin']);
-    $r->post('/equips/{id}', [TeamController::class, 'update'], ['admin']);
-    $r->post('/equips/{id}/eliminar', [TeamController::class, 'delete'], ['admin']);
 
     $r->get('/admin/correu', [AdminController::class, 'mailForm'], ['admin']);
     $r->post('/admin/correu', [AdminController::class, 'mailSave'], ['admin']);

@@ -9,8 +9,7 @@ $heads = ['published' => 'Nou entrenament publicat', 'updated' => 'Entrenament m
   <tr><td style="color:#5a6b85;width:120px;">Títol</td><td><strong><?= $h($training['title']) ?></strong></td></tr>
   <tr><td style="color:#5a6b85;">Data</td><td><?= $h(date('d/m/Y', strtotime($training['session_date']))) ?></td></tr>
   <tr><td style="color:#5a6b85;">Hora</td><td><?= $h(substr($training['start_time'], 0, 5)) ?></td></tr>
-  <?php if ($categories): ?><tr><td style="color:#5a6b85;">Categories</td><td><?= $h(implode(', ', $categories)) ?></td></tr><?php endif; ?>
-  <?php if ($teams): ?><tr><td style="color:#5a6b85;">Equips</td><td><?= $h(implode(', ', $teams)) ?></td></tr><?php endif; ?>
+  <?php if ($categories): ?><tr><td style="color:#5a6b85;">Equips</td><td><?= $h(implode(', ', $categories)) ?></td></tr><?php endif; ?>
 </table>
 <?php if (!empty($training['description'])): ?><p><?= nl2br($h($training['description'])) ?></p><?php endif; ?>
 <?php if ($kind !== 'cancelled'): ?>

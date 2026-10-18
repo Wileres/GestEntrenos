@@ -42,11 +42,10 @@ final class Category
     {
         return (bool) Db::value(
             'SELECT (SELECT COUNT(*) FROM user_categories WHERE category_id = :a)
-                  + (SELECT COUNT(*) FROM teams WHERE category_id = :b)
                   + (SELECT COUNT(*) FROM exercises WHERE category_id = :c)
                   + (SELECT COUNT(*) FROM exercise_categories WHERE category_id = :d)
                   + (SELECT COUNT(*) FROM training_categories WHERE category_id = :e)',
-            ['a' => $id, 'b' => $id, 'c' => $id, 'd' => $id, 'e' => $id]
+            ['a' => $id, 'c' => $id, 'd' => $id, 'e' => $id]
         );
     }
 

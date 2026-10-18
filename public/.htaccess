@@ -9,7 +9,8 @@ DirectoryIndex index.php
     RewriteRule ^ index.php [L]
 </IfModule>
 
-<FilesMatch "^\.">
+# Bloqueja fitxers ocults (.env, .git...) però permet .well-known (validació Let's Encrypt)
+<FilesMatch "^\.(?!well-known$)">
     Require all denied
 </FilesMatch>
 

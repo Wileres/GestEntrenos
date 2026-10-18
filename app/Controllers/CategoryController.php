@@ -63,7 +63,7 @@ final class CategoryController extends Controller
         $id = $this->id($p);
         Category::find($id) ?? Response::notFound();
         if (Category::inUse($id)) {
-            $this->done('No es pot eliminar: la categoria té entrenadors, equips, exercicis o entrenaments relacionats. Pots desactivar-la.', '/categories', 'error');
+            $this->done('No es pot eliminar: la categoria té entrenadors, exercicis o entrenaments relacionats. Pots desactivar-la.', '/categories', 'error');
         }
         Category::delete($id);
         AuditService::log('category_deleted', 'category', $id);
