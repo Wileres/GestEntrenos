@@ -24,4 +24,5 @@ DirectoryIndex index.php
     ExpiresByType application/javascript "access plus 30 days"
     ExpiresByType image/svg+xml "access plus 30 days"
     ExpiresByType image/png "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>

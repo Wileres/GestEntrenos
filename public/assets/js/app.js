@@ -87,11 +87,14 @@
     var ua = navigator.userAgent || '';
     var isIos = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    // Firefox per a Android no té l'esdeveniment d'instal·lació: s'ensenya com fer-ho des del menú.
+    var isFirefoxAndroid = /android/i.test(ua) && /firefox/i.test(ua);
+
     function setInstallVisible(show) {
         installButtons.forEach(function (b) { b.hidden = !show; });
     }
     if (installButtons.length && !standalone) {
-        if (isIos) { setInstallVisible(true); }
+        if (isIos || isFirefoxAndroid) { setInstallVisible(true); }
         window.addEventListener('beforeinstallprompt', function (ev) {
             ev.preventDefault();
             deferredPrompt = ev;
@@ -108,10 +111,10 @@
                     deferredPrompt = null;
                     p.prompt();
                     if (p.userChoice) {
-                        p.userChoice.then(function (c) { if (c.outcome === 'accepted') { setInstallVisible(false); } else if (!isIos) { setInstallVisible(false); } });
+                        p.userChoice.then(function (c) { if (c.outcome === 'accepted') { setInstallVisible(false); } else if (!isIos && !isFirefoxAndroid) { setInstallVisible(false); } });
                     }
-                } else if (isIos) {
-                    var d = document.getElementById('ios-install-dialog');
+                } else if (isIos || isFirefoxAndroid) {
+                    var d = document.getElementById(isIos ? 'ios-install-dialog' : 'firefox-install-dialog');
                     if (d && typeof d.showModal === 'function') { d.showModal(); }
                 }
             });

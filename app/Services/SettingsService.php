@@ -44,7 +44,7 @@ final class SettingsService
     {
         return [
             'name' => self::get('pwa_name', 'Entrenaments JSPM'),
-            'short' => self::get('pwa_short_name', 'JSPM'),
+            'short' => self::get('pwa_short_name', 'Entrenaments'),
             'theme' => self::get('pwa_theme_color', '#0b3d91'),
             'bg' => self::get('pwa_bg_color', '#ffffff'),
         ];

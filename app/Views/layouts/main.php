@@ -15,6 +15,7 @@ $club = \App\Services\SettingsService::clubName();
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? 'Entrenaments') ?> · Entrenaments JSPM</title>
 <?php \App\Helpers\View::component('head_pwa'); ?>
+    <link rel="preload" href="<?= e(asset('fonts/familjen-grotesk-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </head>

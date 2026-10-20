@@ -36,9 +36,11 @@ final class TrainingController extends Controller
     {
         $t = Training::findVisible($this->id($p), $this->user()) ?? Response::notFound();
         $id = (int) $t['id'];
+        $exercises = Training::exercises($id);
         $this->render('trainings/show', [
+            'exerciseFiles' => Exercise::filesByExercise(array_column($exercises, 'exercise_id')),
             'title' => $t['title'], 't' => $t, 'categories' => Training::categories($id),
-            'exercises' => Training::exercises($id), 'files' => Training::files($id),
+            'exercises' => $exercises, 'files' => Training::files($id),
             'transitions' => self::TRANSITIONS[$t['status']],
         ]);
     }

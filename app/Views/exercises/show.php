@@ -4,6 +4,12 @@
     <a class="btn btn-secondary" href="<?= e(url('/exercicis/' . $e['id'] . '/editar')) ?>">Edita</a>
     <?= post_form_open('/exercicis/' . $e['id'] . '/eliminar', 'Vols eliminar definitivament aquest exercici?') ?><button class="btn btn-danger" type="submit">Elimina</button></form>
 </div><?php endif; ?></div>
+<?php if ($files): ?>
+<section class="card card-files" aria-labelledby="h-adjunts">
+    <h2 id="h-adjunts">Fitxers adjunts <span class="count"><?= count($files) ?></span></h2>
+    <?php \App\Helpers\View::component('attachments', ['files' => $files, 'kind' => 'exercici']); ?>
+</section>
+<?php endif; ?>
 <div class="grid grid-2">
     <section class="card">
         <h2>Explicació</h2>
@@ -22,9 +28,5 @@
             <dt>Creat per</dt><dd><?= e($e['creator_name']) ?> · <?= e(fmt_date($e['created_at'])) ?></dd>
             <dt>Modificat</dt><dd><?= e(fmt_datetime($e['updated_at'])) ?></dd>
         </dl>
-        <?php if ($files): ?><h3>Fitxers adjunts</h3>
-        <ul class="list"><?php foreach ($files as $f): ?>
-            <li><a href="<?= e(url('/fitxers/exercici/' . $f['id'])) ?>"><?= e($f['original_name']) ?></a> <small class="muted"><?= e(human_size((int) $f['size_bytes'])) ?></small></li>
-        <?php endforeach; ?></ul><?php endif; ?>
-    </section>
+</section>
 </div>

@@ -35,7 +35,7 @@ final class FileController extends Controller
     {
         $path = FileService::path($sub, $f['stored_name']) ?? Response::notFound();
         AuditService::log('file_downloaded', $entity, (int) $f['id']);
-        FileService::stream($path, (string) $f['mime_type'], (string) $f['original_name']);
+        FileService::stream($path, (string) $f['mime_type'], (string) $f['original_name'], isset($_GET['veure']));
     }
 
     /** El logotip és públic (es mostra a la pantalla d'accés). */

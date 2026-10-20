@@ -74,6 +74,24 @@ final class Exercise
         return Db::all('SELECT id, original_name, mime_type, size_bytes FROM exercise_files WHERE exercise_id = ? ORDER BY id', [$id]);
     }
 
+    /** Adjunts de diversos exercicis, agrupats per exercici (evita una consulta per fila). */
+    public static function filesByExercise(array $ids): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (!$ids) {
+            return [];
+        }
+        $rows = Db::all(
+            'SELECT id, exercise_id, original_name, mime_type, size_bytes FROM exercise_files WHERE exercise_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY id',
+            $ids
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int) $r['exercise_id']][] = $r;
+        }
+        return $out;
+    }
+
     public static function file(int $fileId): ?array
     {
         return Db::one(

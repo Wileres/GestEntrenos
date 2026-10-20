@@ -181,7 +181,13 @@ final class FileService
         }
     }
 
-    public static function stream(string $path, string $mime, string $downloadName): never
+    /** Tipus que el navegador pot mostrar directament sense risc (no executen codi). */
+    public static function isViewable(string $mime): bool
+    {
+        return in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true);
+    }
+
+    public static function stream(string $path, string $mime, string $downloadName, bool $inline = false): never
     {
         while (ob_get_level() > 0) {
             ob_end_clean();
@@ -189,7 +195,8 @@ final class FileService
         $ascii = preg_replace('/[^A-Za-z0-9._-]/', '_', $downloadName) ?: 'fitxer';
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . filesize($path));
-        header("Content-Disposition: attachment; filename=\"{$ascii}\"; filename*=UTF-8''" . rawurlencode($downloadName));
+        $inline = $inline && self::isViewable($mime);
+        header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . "; filename=\"{$ascii}\"; filename*=UTF-8''" . rawurlencode($downloadName));
         header('X-Content-Type-Options: nosniff');
         header('Cache-Control: private, no-store');
         $h = fopen($path, 'rb');
