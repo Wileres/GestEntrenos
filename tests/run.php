@@ -21,6 +21,8 @@ use App\Services\Installer;
 use App\Services\MailService;
 use App\Services\NotificationService;
 use App\Services\TokenService;
+use App\Services\WebPush;
+use App\Services\Notifier;
 use App\Validators\Validator;
 
 if (PHP_SAPI !== 'cli') {
@@ -322,7 +324,7 @@ $anna = new Client($base);
 $anna->login('anna@prova.cat', 'Recuperada2026x');
 
 section('Permisos: administrador vs entrenador');
-foreach (['/entrenadors', '/entrenadors/nou', '/categories', '/categories', '/admin/correu', '/admin/registre', '/admin/correus', '/admin/logotip', '/exercicis/nou', '/entrenaments/nou'] as $path) {
+foreach (['/entrenadors', '/entrenadors/nou', '/categories', '/categories', '/admin/correu', '/admin/registre', '/admin/correus', '/admin/identitat', '/administradors', '/administradors/nou', '/exercicis/nou', '/entrenaments/nou'] as $path) {
     t("Entrenador no pot accedir a $path", $anna->get($path)['status'] === 403);
 }
 $r = $anna->post('/categories', ['name' => 'Hackers', 'sort_order' => 1], '/exercicis');
@@ -511,12 +513,12 @@ t('Deixar la contrasenya en blanc la conserva', Crypto::decrypt((string) Db::val
 t('Contrasenya SMTP absent dels registres', (int) Db::value("SELECT COUNT(*) FROM audit_logs WHERE details LIKE '%SecretSMTP%'") === 0 && (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE error_message LIKE '%SecretSMTP%'") === 0);
 $logoPath = $tmp . '/logo.png';
 file_put_contents($logoPath, $png);
-$r = $admin->request('POST', '/admin/logotip', ['_csrf' => $admin->csrf('/admin/logotip'), 'logo' => new CURLFile($logoPath, 'image/png', 'logo.png')]);
+$r = $admin->request('POST', '/admin/identitat/logotip', ['_csrf' => $admin->csrf('/admin/identitat'), 'logo' => new CURLFile($logoPath, 'image/png', 'logo.png')]);
 t('Logotip pujat', $r['status'] === 303 && \App\Services\SettingsService::logoPath() !== null);
 $lg = (new Client($base))->get('/logotip');
 t('El logotip es serveix públicament (pantalla d\'accés)', $lg['status'] === 200 && str_starts_with($lg['headers']['content-type'] ?? '', 'image/png'));
-$r = $admin->request('POST', '/admin/logotip', ['_csrf' => $admin->csrf('/admin/logotip'), 'logo' => new CURLFile($pdfPath, 'application/pdf', 'logo.pdf')]);
-t('Logotip amb tipus no permès rebutjat', $r['status'] === 303 && str_contains($admin->get('/admin/logotip')['body'], 'no està permès'));
+$r = $admin->request('POST', '/admin/identitat/logotip', ['_csrf' => $admin->csrf('/admin/identitat'), 'logo' => new CURLFile($pdfPath, 'application/pdf', 'logo.pdf')]);
+t('Logotip amb tipus no permès rebutjat', $r['status'] === 303 && str_contains($admin->get('/admin/identitat')['body'], 'no està permès'));
 
 section('Pàgina d\'equip, camps buits i contrasenya mínima');
 $r = $anna->get('/');
@@ -539,6 +541,206 @@ $v = (new Validator(['p' => 'abcdef1', 'p2' => 'abcdef1']))->password('p', 'p2')
 t('Contrasenya de 7 caràcters rebutjada', $v->fails());
 $v = (new Validator(['p' => 'abcdefgh', 'p2' => 'abcdefgh']))->password('p', 'p2');
 t('Contrasenya sense números rebutjada', $v->fails());
+
+section('Administradors, eliminació d\'entrenadors i avisos');
+$r = $admin->post('/administradors', ['first_name' => 'Laia', 'last_name' => 'Admin', 'email' => 'laia@prova.cat', 'is_active' => 1], '/administradors/nou');
+t('L\'administrador pot crear un altre administrador', $r['status'] === 303);
+$laiaId = (int) Db::value("SELECT id FROM users WHERE email = 'laia@prova.cat'");
+t('El nou usuari té el rol d\'administrador', Db::value('SELECT r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ?', [$laiaId]) === 'admin');
+t('Es registra l\'enviament del correu d\'activació', (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE recipient = 'laia@prova.cat'") === 1);
+$r = $admin->post('/administradors', ['first_name' => 'X', 'last_name' => 'Y', 'email' => 'LAIA@prova.cat'], '/administradors/nou');
+t('Correu d\'administrador únic', $r['status'] === 422);
+t('Un entrenador no pot veure ni crear administradors', $anna->post('/administradors', ['first_name' => 'H', 'last_name' => 'H', 'email' => 'h@prova.cat'], '/exercicis')['status'] === 403
+    && (int) Db::value("SELECT COUNT(*) FROM users WHERE email = 'h@prova.cat'") === 0);
+$laiaToken = TokenService::createActivation($laiaId);
+$laia = new Client($base);
+$laia->post("/activar/$laiaToken", ['password' => 'LaiaAdmin2026', 'password_confirmation' => 'LaiaAdmin2026'], "/activar/$laiaToken");
+$laia->login('laia@prova.cat', 'LaiaAdmin2026');
+t('El nou administrador pot iniciar sessió i accedir a l\'administració', $laia->get('/entrenadors')['status'] === 200 && $laia->get('/administradors')['status'] === 200);
+$r = $laia->post("/administradors/$laiaId/estat", [], '/administradors');
+t('No es pot desactivar un mateix', $r['status'] === 303 && (int) Db::value('SELECT is_active FROM users WHERE id = ?', [$laiaId]) === 1);
+$admin->post("/administradors/$laiaId/estat", [], '/administradors');
+t('Un administrador pot desactivar-ne un altre', (int) Db::value('SELECT is_active FROM users WHERE id = ?', [$laiaId]) === 0 && $laia->get('/entrenadors')['status'] === 303);
+$gestorId = (int) Db::value("SELECT id FROM users WHERE username = 'gestor'");
+Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$laiaId]);
+$admin->post("/administradors/$gestorId", ['first_name' => 'Gestor', 'last_name' => '', 'email' => 'gestor@prova.cat', 'is_active' => ''], '/administradors');
+t('L\'últim administrador actiu no es pot desactivar', (int) Db::value('SELECT is_active FROM users WHERE id = ?', [$gestorId]) === 1);
+
+$admin->post('/entrenadors', ['first_name' => 'Temp', 'last_name' => 'Esborrar', 'email' => 'temp@prova.cat', 'is_active' => 1, 'category_ids' => [$catCadet]], '/entrenadors/nou');
+$tempId = (int) Db::value("SELECT id FROM users WHERE email = 'temp@prova.cat'");
+t('Entrenador temporal creat amb categories i token', $tempId > 0 && (int) Db::value('SELECT COUNT(*) FROM user_categories WHERE user_id = ?', [$tempId]) === 1);
+$r = $anna->post("/entrenadors/$tempId/eliminar", [], '/exercicis');
+t('Un entrenador no pot eliminar entrenadors', $r['status'] === 403 && (int) Db::value('SELECT COUNT(*) FROM users WHERE id = ?', [$tempId]) === 1);
+$r = $admin->post("/entrenadors/$tempId/eliminar", [], '/entrenadors');
+t('L\'administrador elimina un entrenador', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM users WHERE id = ?', [$tempId]) === 0);
+t('S\'eliminen també les relacions i els tokens', (int) Db::value('SELECT COUNT(*) FROM user_categories WHERE user_id = ?', [$tempId]) === 0
+    && (int) Db::value('SELECT COUNT(*) FROM user_roles WHERE user_id = ?', [$tempId]) === 0 && (int) Db::value('SELECT COUNT(*) FROM activation_tokens WHERE user_id = ?', [$tempId]) === 0);
+t('L\'eliminació queda auditada', (int) Db::value("SELECT COUNT(*) FROM audit_logs WHERE action = 'trainer_deleted' AND entity_id = ?", [$tempId]) === 1);
+t('Eliminar un entrenador inexistent → 404', $admin->post("/entrenadors/$tempId/eliminar", [], '/entrenadors')['status'] === 404);
+
+Db::run("INSERT INTO email_logs (type, recipient, subject, status, attempts, error_message, created_at) VALUES ('prova', 'a@b.cat', 's', 'failed', 2, 'x', ?)", [Db::now()]);
+t('L\'avís de correus fallits es mostra', str_contains($admin->get('/')['body'], 'fallit(s)'));
+$r = $admin->post('/admin/avisos/correus', [], '/');
+t('Es pot descartar l\'avís', $r['status'] === 303 && !str_contains($admin->get('/')['body'], 'fallit(s)'));
+sleep(1);
+Db::run("INSERT INTO email_logs (type, recipient, subject, status, attempts, error_message, created_at) VALUES ('prova', 'a@b.cat', 's', 'failed', 2, 'x', ?)", [Db::now()]);
+t('Un error nou torna a mostrar l\'avís', str_contains($admin->get('/')['body'], 'fallit(s)'));
+t('Un entrenador no pot descartar avisos', $anna->post('/admin/avisos/correus', [], '/exercicis')['status'] === 403);
+
+section('Notificacions: aplicació, correu i navegador (Web Push)');
+$pushLog = [];
+WebPush::$transport = function (string $endpoint, array $headers, string $body) use (&$pushLog): int {
+    $pushLog[] = compact('endpoint', 'headers', 'body');
+    return str_contains($endpoint, 'gone') ? 410 : 201;
+};
+$client = WebPush::generateKeyPair();
+$authSecret = random_bytes(16);
+$csrf = $anna->csrf('/notificacions');
+$sub = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/abc123', 'keys' => ['p256dh' => WebPush::b64uEncode($client['public']), 'auth' => WebPush::b64uEncode($authSecret)]];
+$r = $anna->request('POST', '/push/subscriure', json_encode($sub));
+t('Subscripció sense CSRF rebutjada', $r['status'] === 419);
+$ch = curl_init($base . '/push/subscriure');
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($sub), CURLOPT_COOKIEFILE => $anna->jar, CURLOPT_COOKIEJAR => $anna->jar,
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-CSRF-Token: ' . $csrf]]);
+curl_exec($ch);
+t('Subscripció Web Push acceptada (JSON + capçalera CSRF)', curl_getinfo($ch, CURLINFO_RESPONSE_CODE) === 200 && Notifier::hasSubscription($annaId));
+$bad = $sub;
+$bad['endpoint'] = 'http://127.0.0.1/interna';
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($bad));
+curl_exec($ch);
+t('Endpoint no permès (SSRF) rebutjat', curl_getinfo($ch, CURLINFO_RESPONSE_CODE) === 422);
+curl_close($ch);
+t('Només es permeten serveis de push coneguts', WebPush::isAllowedEndpoint('https://updates.push.services.mozilla.com/wpush/v2/x') && !WebPush::isAllowedEndpoint('https://evil.example.com/x') && !WebPush::isAllowedEndpoint('http://fcm.googleapis.com/x'));
+Notifier::subscribe($annaId, 'https://fcm.googleapis.com/fcm/send/gone-endpoint', WebPush::b64uEncode($client['public']), WebPush::b64uEncode($authSecret));
+
+$sent = [];
+MailService::$fake = function (array $m) use (&$sent): bool {
+    $sent[] = $m;
+    return true;
+};
+$exNew = (int) Db::insert('exercises', ['name' => 'Exercici notificat', 'description' => 'x', 'category_id' => $catCadet, 'is_active' => 1, 'created_by' => 1, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
+Db::insert('exercise_categories', ['exercise_id' => $exNew, 'category_id' => $catCadet]);
+$res = NotificationService::notifyNewExercise($exNew);
+t('Nou exercici: correu als entrenadors de l\'equip (sense duplicats)', $res['sent'] === count(array_unique(array_column($sent, 'to'))) && $res['sent'] >= 1 && str_contains($sent[0]['html'], 'Nou exercici'));
+t('Nou exercici: notificació dins l\'aplicació', (int) Db::value("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND title = 'Nou exercici' AND body LIKE 'Exercici notificat%'", [$annaId]) === 1);
+t('Nou exercici: Web Push enviat i subscripció caducada (410) eliminada', count($pushLog) === 2 && !(bool) Db::value("SELECT 1 FROM push_subscriptions WHERE endpoint LIKE '%gone-endpoint'"));
+t('Cada entrenador de l\'equip rep la seva notificació', (int) Db::value("SELECT COUNT(*) FROM notifications WHERE body LIKE 'Exercici notificat%' AND user_id = ?", [$bernat]) === 1);
+t('Un entrenador sense l\'equip no rep res', (int) Db::value("SELECT COUNT(*) FROM notifications WHERE body LIKE 'Exercici notificat%' AND user_id NOT IN (?, ?)", [$annaId, $bernat]) === 0);
+Db::run('UPDATE users SET notify_email = 0 WHERE id = ?', [$bernat]);
+$sent = [];
+NotificationService::notifyNewExercise($exNew);
+t('Amb els correus desactivats només rep notificació a l\'aplicació', !in_array('bernat@prova.cat', array_column($sent, 'to'), true) && (int) Db::value("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND body LIKE 'Exercici notificat%'", [$bernat]) === 2);
+Db::run('UPDATE users SET notify_email = 1 WHERE id = ?', [$bernat]);
+
+// Verificació de la notificació xifrada: la desxifrem com ho faria el navegador
+$msg = $pushLog[0];
+$body = $msg['body'];
+$salt = substr($body, 0, 16);
+$asPub = substr($body, 21, 65);
+$cipher = substr($body, 86);
+$der = hex2bin('30770201010420') . $client['private'] . hex2bin('a00a06082a8648ce3d030107a144034200') . $client['public'];
+$uaPem = "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+$peerPem = "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode(hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200') . $asPub), 64, "\n") . "-----END PUBLIC KEY-----\n";
+$secret = openssl_pkey_derive($peerPem, $uaPem, 32);
+$ikm = hash_hkdf('sha256', $secret, 32, "WebPush: info\0" . $client['public'] . $asPub, $authSecret);
+$cek = hash_hkdf('sha256', $ikm, 16, "Content-Encoding: aes128gcm\0", $salt);
+$nonce = hash_hkdf('sha256', $ikm, 12, "Content-Encoding: nonce\0", $salt);
+$plain = openssl_decrypt(substr($cipher, 0, -16), 'aes-128-gcm', $cek, OPENSSL_RAW_DATA, $nonce, substr($cipher, -16));
+$payload = json_decode((string) rtrim((string) $plain, "\x02"), true);
+t('El missatge Web Push es desxifra correctament al dispositiu', is_array($payload) && $payload['title'] === 'Nou exercici' && str_contains($payload['url'], '/exercicis/' . $exNew));
+$auth = '';
+foreach ($msg['headers'] as $h) {
+    if (str_starts_with($h, 'Authorization: ')) {
+        $auth = substr($h, 15);
+    }
+}
+preg_match('/^vapid t=([^,]+), k=(.+)$/', $auth, $m);
+[$h64, $c64, $s64] = explode('.', $m[1]);
+$raw = WebPush::b64uDecode($s64);
+$toDer = function (string $rs): string {
+    $enc = fn (string $i) => (ord($i[0]) & 0x80 ? "\0" : '') . ltrim($i, "\0") ?: "\0";
+    $r = $enc(substr($rs, 0, 32));
+    $s = $enc(substr($rs, 32));
+    return "\x30" . chr(strlen($r) + strlen($s) + 4) . "\x02" . chr(strlen($r)) . $r . "\x02" . chr(strlen($s)) . $s;
+};
+$vapidPub = WebPush::b64uDecode($m[2]);
+$vp = "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode(hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200') . $vapidPub), 64, "\n") . "-----END PUBLIC KEY-----\n";
+t('La signatura VAPID (JWT ES256) és vàlida', openssl_verify("$h64.$c64", $toDer($raw), $vp, OPENSSL_ALGO_SHA256) === 1 && $m[2] === Notifier::publicKey());
+t('La clau privada VAPID es guarda xifrada', !str_contains((string) Db::value("SELECT setting_value FROM application_settings WHERE setting_key = 'vapid_private'"), WebPush::b64uEncode(Notifier::vapid()['private'])));
+// Vector de prova de l'RFC 8291
+$rfc = WebPush::encrypt(WebPush::b64uDecode('V2hlbiBJIGdyb3cgdXAsIEkgd2FudCB0byBiZSBhIHdhdGVybWVsb24'),
+    WebPush::b64uDecode('BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4'), WebPush::b64uDecode('BTBZMqHH6r4Tts7J_aSIgg'),
+    ['private' => WebPush::b64uDecode('yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw'), 'public' => WebPush::b64uDecode('BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8')],
+    WebPush::b64uDecode('DGv6ra1nlYgDCS1FRnbzlw'));
+t('El xifrat compleix el vector de prova de l\'RFC 8291', WebPush::b64uEncode(substr($rfc, 86)) === '8pfeW0KbunFT06SuDKoJH9Ql87S1QUrdirN6GcG7sFz1y1sqLgVi1VhjVkHsUoEsbI_0LpXMuGvnzQ');
+
+$r = $anna->get('/notificacions');
+t('La pàgina de notificacions mostra les novetats i marca-les com a llegides', $r['status'] === 200 && str_contains($r['body'], 'Exercici notificat') && Notifier::unreadCount($annaId) === 0);
+$r = $anna->post('/notificacions/preferencies', [], '/notificacions');
+t('L\'entrenador pot desactivar els correus', (int) Db::value('SELECT notify_email FROM users WHERE id = ?', [$annaId]) === 0);
+$anna->post('/notificacions/preferencies', ['notify_email' => 1], '/notificacions');
+Db::run('DELETE FROM push_subscriptions');
+WebPush::$transport = null;
+MailService::$fake = null;
+
+section('PWA: manifest, service worker, icones i botó d\'instal·lació');
+$pub = new Client($base);
+$r = $pub->get('/manifest.webmanifest');
+$mf = json_decode($r['body'], true);
+t('Manifest públic amb tipus application/manifest+json', $r['status'] === 200 && str_starts_with($r['headers']['content-type'] ?? '', 'application/manifest+json') && is_array($mf));
+t('Manifest: standalone, inici i àmbit relatius (arrel o subdirectori)', ($mf['display'] ?? '') === 'standalone' && str_starts_with($mf['start_url'] ?? '', './') && ($mf['scope'] ?? '') === './' && ($mf['lang'] ?? '') === 'ca');
+$sizes = array_column($mf['icons'] ?? [], 'sizes');
+t('Manifest: icones 192, 512 i maskable', in_array('192x192', $sizes, true) && in_array('512x512', $sizes, true) && in_array('maskable', array_column($mf['icons'], 'purpose'), true)
+    && !str_starts_with($mf['icons'][0]['src'], '/'));
+t('El manifest no estableix galetes de sessió', !isset($r['headers']['set-cookie']));
+$r = $pub->get('/service-worker.js');
+t('Service worker servit com a JavaScript i sense marcadors sense substituir', $r['status'] === 200 && str_contains($r['headers']['content-type'] ?? '', 'javascript') && !str_contains($r['body'], '__VERSION__') && !str_contains($r['body'], '__PRECACHE__'));
+t('Service worker: versionat i neteja de caches antigues', str_contains($r['body'], "const VERSION = '") && str_contains($r['body'], 'caches.delete'));
+t('Service worker: no desa POST ni pàgines (navegació només per xarxa)', str_contains($r['body'], "req.method !== 'GET'") && str_contains($r['body'], "req.mode === 'navigate'") && !preg_match('/cache\.put\([^)]*navigate/', $r['body']));
+foreach (['icon-192' => 192, 'icon-512' => 512, 'icon-maskable-512' => 512, 'apple-touch-icon' => 180, 'favicon-32' => 32, 'favicon-16' => 16] as $name => $px) {
+    $r = $pub->get("/icones/$name");
+    $info = @getimagesizefromstring($r['body']);
+    t("Icona $name ({$px}x{$px}) servida", $r['status'] === 200 && ($r['headers']['content-type'] ?? '') === 'image/png' && $info && $info[0] === $px && $info[1] === $px);
+}
+t('Una icona inexistent retorna 404', $pub->get('/icones/../../.env')['status'] === 404 && $pub->get('/icones/inventada')['status'] === 404);
+t('/favicon.ico respon amb una imatge', ($f = $pub->get('/favicon.ico'))['status'] === 200 && ($f['headers']['content-type'] ?? '') === 'image/png');
+t('Pàgina sense connexió pública', ($o = $pub->get('/offline'))['status'] === 200 && str_contains($o['body'], 'Sense connexió'));
+$login = $pub->get('/acces')['body'];
+t('<head>: manifest, theme-color, favicons i icona Apple', str_contains($login, 'rel="manifest"') && str_contains($login, 'name="theme-color"') && str_contains($login, 'sizes="32x32"')
+    && str_contains($login, 'sizes="16x16"') && str_contains($login, 'rel="apple-touch-icon"') && str_contains($login, 'name="viewport"') && str_contains($login, 'apple-mobile-web-app-capable'));
+t('Botó «Instal·la l\'aplicació» present però ocult per defecte (el mostra JavaScript)', preg_match('/data-install hidden/', $login) === 1 && str_contains($login, 'ios-install-dialog'));
+t('Les icones no es serveixen amb la CSP bloquejada (sense scripts inline)', !preg_match('/<script(?![^>]*src)[^>]*>/', $login));
+
+$r = $admin->get('/admin/identitat');
+t('Pàgina de configuració d\'icones i logotips', $r['status'] === 200 && str_contains($r['body'], 'icon-maskable-512') && str_contains($r['body'], 'Genera totes les icones'));
+$r = $admin->post('/admin/identitat/generar', [], '/admin/identitat');
+$gen = $pub->get('/icones/icon-192');
+t('Generació automàtica d\'icones a partir del logotip', $r['status'] === 303 && \App\Services\IconService::isCustom('icon-192') && \App\Services\IconService::isCustom('icon-maskable-512')
+    && ($i = getimagesizefromstring($gen['body'])) && $i[0] === 192 && $i[2] === IMAGETYPE_PNG);
+$notSquare = $tmp . '/nosquare.png';
+$im = imagecreatetruecolor(20, 10);
+imagepng($im, $notSquare);
+$r = $admin->request('POST', '/admin/identitat/icona/icon-192', ['_csrf' => $admin->csrf('/admin/identitat'), 'icon' => new CURLFile($notSquare, 'image/png', 'a.png')]);
+t('Icona no quadrada rebutjada', $r['status'] === 303 && str_contains($admin->get('/admin/identitat')['body'], 'quadrada'));
+$r = $admin->request('POST', '/admin/identitat/icona/icon-192', ['_csrf' => $admin->csrf('/admin/identitat'), 'icon' => new CURLFile($pdfPath, 'application/pdf', 'a.png')]);
+t('Icona amb contingut que no és PNG rebutjada', str_contains($admin->get('/admin/identitat')['body'], 'no coincideix') || str_contains($admin->get('/admin/identitat')['body'], 'no està permès'));
+$sq = $tmp . '/sq.png';
+imagepng(imagecreatetruecolor(300, 300), $sq);
+$admin->request('POST', '/admin/identitat/icona/icon-512', ['_csrf' => $admin->csrf('/admin/identitat'), 'icon' => new CURLFile($sq, 'image/png', 'sq.png')]);
+$i = getimagesizefromstring($pub->get('/icones/icon-512')['body']);
+t('Una icona pujada es redimensiona a la mida correcta', $i && $i[0] === 512 && $i[1] === 512);
+$admin->post('/admin/identitat/icona/icon-512/restaura', [], '/admin/identitat');
+t('Es pot restaurar la icona per defecte', !\App\Services\IconService::isCustom('icon-512'));
+t('Una icona amb nom invàlid és rebutjada', $admin->post('/admin/identitat/icona/..%2Fx', [], '/admin/identitat')['status'] === 404 || !is_file(BASE_PATH . '/storage/uploads/icons/..'));
+$r = $admin->post('/admin/identitat/pwa', ['pwa_name' => 'Club', 'pwa_short_name' => 'JSPM', 'pwa_theme_color' => 'vermell', 'pwa_bg_color' => '#ffffff'], '/admin/identitat');
+t('Color invàlid rebutjat', $r['status'] === 422);
+$admin->post('/admin/identitat/pwa', ['pwa_name' => 'Entrenaments del Club', 'pwa_short_name' => 'Club', 'pwa_theme_color' => '#112233', 'pwa_bg_color' => '#ffeedd'], '/admin/identitat');
+$mf = json_decode($pub->get('/manifest.webmanifest')['body'], true);
+t('Els ajustos de la PWA es reflecteixen al manifest i al theme-color', $mf['name'] === 'Entrenaments del Club' && $mf['short_name'] === 'Club' && $mf['theme_color'] === '#112233'
+    && str_contains($pub->get('/acces')['body'], '#112233'));
+t('Un entrenador no pot canviar les icones', $anna->post('/admin/identitat/generar', [], '/exercicis')['status'] === 403);
+$admin->post('/admin/identitat/pwa', ['pwa_name' => 'Entrenaments JSPM', 'pwa_short_name' => 'JSPM', 'pwa_theme_color' => '#0b3d91', 'pwa_bg_color' => '#ffffff'], '/admin/identitat');
+$admin->post('/admin/identitat/generar', [], '/admin/identitat');
 
 section('Sessions, desactivació i tancament');
 Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$annaId]);

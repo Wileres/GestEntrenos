@@ -18,6 +18,8 @@
                 <a class="btn btn-sm btn-secondary" href="<?= e(url('/entrenadors/' . $t['id'] . '/editar')) ?>">Edita</a>
                 <?= post_form_open('/entrenadors/' . $t['id'] . '/estat', (int) $t['is_active'] ? 'Vols desactivar aquest entrenador? No podrà iniciar sessió.' : '') ?>
                     <button class="btn btn-sm btn-secondary" type="submit"><?= (int) $t['is_active'] ? 'Desactiva' : 'Activa' ?></button></form>
+                <?= post_form_open('/entrenadors/' . $t['id'] . '/eliminar', 'Vols eliminar definitivament l\'entrenador «' . $t['first_name'] . ' ' . $t['last_name'] . '»? Aquesta acció no es pot desfer.') ?>
+                    <button class="btn btn-sm btn-danger" type="submit">Elimina</button></form>
             </td>
         </tr>
     <?php endforeach; ?>

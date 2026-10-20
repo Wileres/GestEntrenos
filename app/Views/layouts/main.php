@@ -14,6 +14,7 @@ $club = \App\Services\SettingsService::clubName();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? 'Entrenaments') ?> · Entrenaments JSPM</title>
+<?php \App\Helpers\View::component('head_pwa'); ?>
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </head>
@@ -25,19 +26,24 @@ $club = \App\Services\SettingsService::clubName();
             <?php if ($logo): ?><img src="<?= e(url('/logotip')) ?>" alt="" class="brand-logo" width="40" height="40"><?php endif; ?>
             <span>Entrenaments JSPM</span>
         </a>
+        <button type="button" class="btn btn-sm btn-install" data-install hidden>Instal·la l'aplicació</button>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal">Menú</button>
         <nav id="menu-principal" class="main-nav" aria-label="Navegació principal">
             <a href="<?= e(url('/')) ?>"<?= $active('/') ?>>Inici</a>
             <a href="<?= e(url('/entrenaments')) ?>"<?= $active('/entrenaments') ?>>Entrenaments</a>
             <a href="<?= e(url('/exercicis')) ?>"<?= $active('/exercicis') ?>>Exercicis</a>
+            <?php if ($user && !$admin): $unread = \App\Services\Notifier::unreadCount((int) $user['id']); ?>
+                <a href="<?= e(url('/notificacions')) ?>"<?= $active('/notificacions') ?>>Notificacions<?= $unread ? ' <span class="badge badge-danger" aria-label="' . $unread . ' sense llegir">' . $unread . '</span>' : '' ?></a>
+            <?php endif; ?>
             <?php if ($admin): ?>
                 <a href="<?= e(url('/entrenadors')) ?>"<?= $active('/entrenadors') ?>>Entrenadors</a>
                 <a href="<?= e(url('/categories')) ?>"<?= $active('/categories') ?>>Categories</a>
                 <details class="nav-menu">
                     <summary>Administració</summary>
                     <div class="nav-menu-list">
+                        <a href="<?= e(url('/administradors')) ?>">Administradors</a>
                         <a href="<?= e(url('/admin/correu')) ?>">Configuració del correu</a>
-                        <a href="<?= e(url('/admin/logotip')) ?>">Logotip del club</a>
+                        <a href="<?= e(url('/admin/identitat')) ?>">Logotip i icones</a>
                         <a href="<?= e(url('/admin/correus')) ?>">Historial de correus</a>
                         <a href="<?= e(url('/admin/registre')) ?>">Registre d'activitat</a>
                     </div>
@@ -61,6 +67,7 @@ $club = \App\Services\SettingsService::clubName();
 <footer class="app-footer container">
     <small><?= e($club) ?> · Entrenaments JSPM</small>
 </footer>
+<?php \App\Helpers\View::component('install_ui'); ?>
 <dialog id="confirm-dialog" class="modal" aria-labelledby="confirm-title">
     <form method="dialog">
         <h2 id="confirm-title">Confirmes l'acció?</h2>

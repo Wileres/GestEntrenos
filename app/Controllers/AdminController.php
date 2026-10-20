@@ -65,48 +65,6 @@ final class AdminController extends Controller
         $this->done($ok ? 'Correu de prova enviat correctament.' : 'No s\'ha pogut enviar el correu de prova. Consulta l\'historial de correus per veure l\'error.', '/admin/correu', $ok ? 'success' : 'error');
     }
 
-    public function logoSave(Request $r, array $p): void
-    {
-        $files = FileService::normalize($r->files['logo'] ?? null);
-        if (!$files) {
-            $this->done('Selecciona una imatge (PNG, JPG o WEBP).', '/admin/logotip', 'error');
-        }
-        [$checked, $err] = FileService::validate($files[0], ['png', 'jpg', 'jpeg', 'webp']);
-        if ($err === null && $files[0]['size'] > 2 * 1048576) {
-            $err = 'El logotip no pot superar els 2 MB.';
-        }
-        if ($err === null) {
-            $dim = getimagesize($files[0]['tmp_name']);
-            if ($dim === false || $dim[0] > 2000 || $dim[1] > 2000) {
-                $err = 'El logotip no pot superar els 2000 px de costat.';
-            }
-        }
-        if ($err !== null) {
-            $this->done($err, '/admin/logotip', 'error');
-        }
-        $ext = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'][$checked['mime']];
-        $name = 'logo-' . bin2hex(random_bytes(8)) . '.' . $ext;
-        $dir = FileService::directory('logo');
-        $target = $dir . '/' . $name;
-        $moved = FileService::$testing ? copy($files[0]['tmp_name'], $target) : move_uploaded_file($files[0]['tmp_name'], $target);
-        if (!$moved) {
-            $this->done('No s\'ha pogut desar el logotip.', '/admin/logotip', 'error');
-        }
-        @chmod($target, 0640);
-        $oldPath = SettingsService::logoPath();
-        SettingsService::set('logo_file', $name);
-        if ($oldPath !== null) {
-            @unlink($oldPath);
-        }
-        AuditService::log('logo_changed', 'settings');
-        $this->done('Logotip actualitzat.', '/admin/logotip');
-    }
-
-    public function logoForm(Request $r, array $p): void
-    {
-        $this->render('admin/logo', ['title' => 'Logotip del club', 'hasLogo' => SettingsService::logoPath() !== null]);
-    }
-
     public function audit(Request $r, array $p): void
     {
         $action = $r->q('action');
@@ -120,6 +78,14 @@ final class AdminController extends Controller
         );
         $actions = Db::column('SELECT DISTINCT action FROM audit_logs ORDER BY action');
         $this->render('admin/audit', ['title' => 'Registre d\'activitat', 'rows' => $rows, 'pager' => $pg, 'action' => $action, 'actions' => $actions]);
+    }
+
+    /** Amaga l'avís de correus fallits fins que n'hi hagi de nous. */
+    public function dismissMailAlert(Request $r, array $p): void
+    {
+        SettingsService::set('mail_alert_dismissed_at', Db::now());
+        AuditService::log('mail_alert_dismissed', 'settings');
+        $this->done('Avís descartat.', '/');
     }
 
     public function emails(Request $r, array $p): void

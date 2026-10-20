@@ -110,6 +110,15 @@ final class TrainerController extends Controller
         $this->done($new ? 'Entrenador activat.' : 'Entrenador desactivat.', '/entrenadors');
     }
 
+    public function delete(Request $r, array $p): void
+    {
+        $id = $this->id($p);
+        $t = User::findTrainer($id) ?? Response::notFound();
+        User::deleteTrainer($id);
+        AuditService::log('trainer_deleted', 'user', $id, 'ok', trim($t['first_name'] . ' ' . $t['last_name']));
+        $this->done('Entrenador eliminat.', '/entrenadors');
+    }
+
     public function activation(Request $r, array $p): void
     {
         $id = $this->id($p);

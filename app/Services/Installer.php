@@ -99,8 +99,10 @@ final class Installer
 
         try {
             self::writeEnv($c, $https);
-            foreach (['001_schema.sql' => 'migrations', '001_initial_data.sql' => 'seeds'] as $file => $dir) {
-                self::runSqlFile($pdo, BASE_PATH . "/database/{$dir}/{$file}");
+            $files = glob(BASE_PATH . '/database/migrations/*.sql') ?: [];
+            sort($files);
+            foreach ([...$files, BASE_PATH . '/database/seeds/001_initial_data.sql'] as $file) {
+                self::runSqlFile($pdo, $file);
             }
             self::createAdmin($pdo, $c['admin_user'], $c['admin_pass']);
             file_put_contents(self::lockFile(), 'Instal·lat el ' . date('Y-m-d H:i:s') . "\n");

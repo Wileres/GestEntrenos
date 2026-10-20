@@ -26,8 +26,14 @@ if (Config::get('force_https') && Config::get('env') === 'production' && !Reques
 
 Response::securityHeaders();
 Response::noCache();
-Session::start();
+
+$request = Request::capture();
+// Els recursos públics de la PWA no necessiten sessió (així es poden desar a la memòria cau sense galetes).
+$noSession = ['/manifest.webmanifest', '/service-worker.js', '/offline', '/favicon.ico', '/logotip'];
+if (!in_array($request->path, $noSession, true) && !str_starts_with($request->path, '/icones/')) {
+    Session::start();
+}
 
 $router = new Router();
 (require BASE_PATH . '/routes/web.php')($router);
-$router->dispatch(Request::capture());
+$router->dispatch($request);

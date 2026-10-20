@@ -12,6 +12,7 @@ use App\Models\Category;
 use App\Models\Exercise;
 use App\Services\AuditService;
 use App\Services\FileService;
+use App\Services\NotificationService;
 use App\Validators\Validator;
 
 final class ExerciseController extends Controller
@@ -105,12 +106,18 @@ final class ExerciseController extends Controller
         $d['extra_categories'] = $extra;
         $d['is_active'] = $d['is_active'] === '1';
         $isNew = $id === null;
+        $wasActive = $isNew ? false : (int) (Exercise::find($id)['is_active'] ?? 0) === 1;
         $id = Exercise::save($id, $d, (int) $this->user()['id']);
         foreach ($valid as [$f, $checked]) {
             Exercise::addFile($id, FileService::store($f, $checked, 'exercises'));
         }
         AuditService::log($isNew ? 'exercise_created' : 'exercise_updated', 'exercise', $id);
-        $this->done('Exercici desat correctament.', '/exercicis/' . $id);
+        $msg = 'Exercici desat correctament.';
+        if ($d['is_active'] && !$wasActive) {
+            $res = NotificationService::notifyNewExercise($id);
+            $msg .= " S'ha avisat els entrenadors dels equips afectats (correus enviats: {$res['sent']}" . ($res['failed'] ? ", errors: {$res['failed']}" : '') . ').';
+        }
+        $this->done($msg, '/exercicis/' . $id);
     }
 
     public function deleteFile(Request $r, array $p): void

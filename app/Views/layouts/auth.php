@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? 'Entrenaments') ?> · Entrenaments JSPM</title>
+<?php \App\Helpers\View::component('head_pwa'); ?>
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </head>
@@ -18,6 +19,8 @@
     </div>
     <?php \App\Helpers\View::component('alerts'); ?>
     <?= $content ?>
+    <p class="center"><button type="button" class="btn btn-sm btn-secondary" data-install hidden>Instal·la l'aplicació</button></p>
 </main>
+<?php \App\Helpers\View::component('install_ui'); ?>
 </body>
 </html>

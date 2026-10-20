@@ -39,6 +39,17 @@ final class SettingsService
         return is_file($path) ? $path : null;
     }
 
+    /** @return array{name:string,short:string,theme:string,bg:string} */
+    public static function pwa(): array
+    {
+        return [
+            'name' => self::get('pwa_name', 'Entrenaments JSPM'),
+            'short' => self::get('pwa_short_name', 'JSPM'),
+            'theme' => self::get('pwa_theme_color', '#0b3d91'),
+            'bg' => self::get('pwa_bg_color', '#ffffff'),
+        ];
+    }
+
     public static function smtp(): array
     {
         return Db::one('SELECT * FROM smtp_settings WHERE id = 1') ?? [

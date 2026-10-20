@@ -19,7 +19,7 @@ final class User
     public static function findTrainer(int $id): ?array
     {
         return Db::one(
-            'SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active, u.notes, u.password_hash IS NOT NULL AS has_password, u.last_login_at, u.created_at '
+            'SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active, u.notes, u.notify_email, u.password_hash IS NOT NULL AS has_password, u.last_login_at, u.created_at '
             . self::TRAINER_FROM . ' WHERE u.id = ?',
             [$id]
         );
@@ -62,6 +62,12 @@ final class User
 
     public static function saveTrainer(?int $id, array $d): int
     {
+        return self::saveAccount($id, $d, 2);
+    }
+
+    /** Crea o actualitza un compte amb el rol indicat (1 = administrador, 2 = entrenador). */
+    public static function saveAccount(?int $id, array $d, int $roleId): int
+    {
         $data = [
             'first_name' => $d['first_name'], 'last_name' => $d['last_name'], 'email' => mb_strtolower($d['email']),
             'phone' => $d['phone'] !== '' ? $d['phone'] : null, 'notes' => $d['notes'] !== '' ? $d['notes'] : null,
@@ -69,7 +75,7 @@ final class User
         ];
         if ($id === null) {
             $id = Db::insert('users', $data + ['created_at' => Db::now(), 'must_change_password' => 0]);
-            Db::insert('user_roles', ['user_id' => $id, 'role_id' => 2]);
+            Db::insert('user_roles', ['user_id' => $id, 'role_id' => $roleId]);
             return $id;
         }
         Db::update('users', $data, 'id = ?', [$id]);
@@ -94,6 +100,44 @@ final class User
                 Db::insert('user_categories', ['user_id' => $userId, 'category_id' => $c]);
             }
         });
+    }
+
+    public static function admins(): array
+    {
+        return Db::all(
+            "SELECT u.id, u.username, u.first_name, u.last_name, u.email, u.is_active, u.last_login_at, u.password_hash IS NOT NULL AS has_password
+             FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'admin'
+             ORDER BY u.last_name, u.first_name"
+        );
+    }
+
+    public static function findAdmin(int $id): ?array
+    {
+        return Db::one(
+            "SELECT u.id, u.username, u.first_name, u.last_name, u.email, u.phone, u.is_active, u.password_hash IS NOT NULL AS has_password, u.last_login_at
+             FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'admin' WHERE u.id = ?",
+            [$id]
+        );
+    }
+
+    public static function countActiveAdmins(): int
+    {
+        return (int) Db::value("SELECT COUNT(*) FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'admin' WHERE u.is_active = 1");
+    }
+
+    /** Elimina un entrenador i les seves relacions. Els tokens, notificacions i subscripcions s'esborren en cascada. */
+    public static function deleteTrainer(int $id): void
+    {
+        Db::transaction(function () use ($id) {
+            Db::run('DELETE FROM user_categories WHERE user_id = ?', [$id]);
+            Db::run('DELETE FROM user_roles WHERE user_id = ?', [$id]);
+            Db::run('DELETE FROM users WHERE id = ?', [$id]);
+        });
+    }
+
+    public static function setNotifyEmail(int $id, bool $on): void
+    {
+        Db::update('users', ['notify_email' => $on ? 1 : 0], 'id = ?', [$id]);
     }
 
     public static function setActive(int $id, bool $active): void

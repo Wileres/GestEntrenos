@@ -12,7 +12,8 @@
     <?php endforeach; ?>
 </div>
 <?php if ($failedCount > 0): ?>
-    <div class="alert alert-warning" role="status">Hi ha <?= (int) $failedCount ?> correu(s) fallit(s) els darrers 7 dies. <a href="<?= e(url('/admin/correus', ['status' => 'failed'])) ?>">Revisa'ls</a>.</div>
+    <div class="alert alert-warning" role="status">Hi ha <?= (int) $failedCount ?> correu(s) fallit(s) els darrers 7 dies. <a href="<?= e(url('/admin/correus', ['status' => 'failed'])) ?>">Revisa'ls</a>.
+        <?= post_form_open('/admin/avisos/correus') ?><button class="btn btn-sm btn-secondary" type="submit">Descarta l'avís</button></form></div>
 <?php endif; ?>
 <div class="grid grid-2">
     <section class="card"><h2>Pròxims entrenaments</h2>

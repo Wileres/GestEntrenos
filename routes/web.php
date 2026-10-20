@@ -3,17 +3,28 @@
 declare(strict_types=1);
 
 use App\Controllers\AdminController;
+use App\Controllers\AdminUserController;
 use App\Controllers\AuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\ExerciseController;
 use App\Controllers\FileController;
+use App\Controllers\IdentityController;
+use App\Controllers\NotificationController;
+use App\Controllers\PwaController;
 use App\Controllers\TeamController;
 use App\Controllers\TrainerController;
 use App\Controllers\TrainingController;
 use App\Services\Router;
 
 return static function (Router $r): void {
+    // PWA (públiques)
+    $r->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
+    $r->get('/service-worker.js', [PwaController::class, 'serviceWorker']);
+    $r->get('/offline', [PwaController::class, 'offline']);
+    $r->get('/icones/{name}', [PwaController::class, 'icon']);
+    $r->get('/favicon.ico', [PwaController::class, 'favicon']);
+
     // Públiques
     $r->get('/acces', [AuthController::class, 'showLogin'], ['guest']);
     $r->post('/acces', [AuthController::class, 'login'], ['guest']);
@@ -32,6 +43,10 @@ return static function (Router $r): void {
     $r->get('/compte/contrasenya', [AuthController::class, 'showChangePassword'], ['auth']);
     $r->post('/compte/contrasenya', [AuthController::class, 'changePassword'], ['auth']);
 
+    $r->get('/notificacions', [NotificationController::class, 'index'], ['auth']);
+    $r->post('/notificacions/preferencies', [NotificationController::class, 'preferences'], ['auth']);
+    $r->post('/push/subscriure', [NotificationController::class, 'subscribe'], ['auth']);
+    $r->post('/push/cancela', [NotificationController::class, 'unsubscribe'], ['auth']);
     $r->get('/equips/{id}', [TeamController::class, 'show'], ['auth']);
     $r->get('/exercicis', [ExerciseController::class, 'index'], ['auth']);
     $r->get('/exercicis/nou', [ExerciseController::class, 'create'], ['admin']);
@@ -63,6 +78,15 @@ return static function (Router $r): void {
     $r->post('/entrenadors/{id}/estat', [TrainerController::class, 'toggle'], ['admin']);
     $r->post('/entrenadors/{id}/activacio', [TrainerController::class, 'activation'], ['admin']);
 
+    $r->get('/administradors', [AdminUserController::class, 'index'], ['admin']);
+    $r->get('/administradors/nou', [AdminUserController::class, 'create'], ['admin']);
+    $r->post('/administradors', [AdminUserController::class, 'store'], ['admin']);
+    $r->get('/administradors/{id}/editar', [AdminUserController::class, 'edit'], ['admin']);
+    $r->post('/administradors/{id}', [AdminUserController::class, 'update'], ['admin']);
+    $r->post('/administradors/{id}/estat', [AdminUserController::class, 'toggle'], ['admin']);
+    $r->post('/administradors/{id}/activacio', [AdminUserController::class, 'activation'], ['admin']);
+    $r->post('/entrenadors/{id}/eliminar', [TrainerController::class, 'delete'], ['admin']);
+
     $r->get('/categories', [CategoryController::class, 'index'], ['admin']);
     $r->get('/categories/nova', [CategoryController::class, 'create'], ['admin']);
     $r->post('/categories', [CategoryController::class, 'store'], ['admin']);
@@ -73,8 +97,13 @@ return static function (Router $r): void {
     $r->get('/admin/correu', [AdminController::class, 'mailForm'], ['admin']);
     $r->post('/admin/correu', [AdminController::class, 'mailSave'], ['admin']);
     $r->post('/admin/correu/prova', [AdminController::class, 'mailTest'], ['admin']);
-    $r->get('/admin/logotip', [AdminController::class, 'logoForm'], ['admin']);
-    $r->post('/admin/logotip', [AdminController::class, 'logoSave'], ['admin']);
+    $r->get('/admin/identitat', [IdentityController::class, 'index'], ['admin']);
+    $r->post('/admin/identitat/logotip', [IdentityController::class, 'logoSave'], ['admin']);
+    $r->post('/admin/identitat/generar', [IdentityController::class, 'generate'], ['admin']);
+    $r->post('/admin/identitat/icona/{name}', [IdentityController::class, 'iconUpload'], ['admin']);
+    $r->post('/admin/identitat/icona/{name}/restaura', [IdentityController::class, 'iconReset'], ['admin']);
+    $r->post('/admin/identitat/pwa', [IdentityController::class, 'pwaSave'], ['admin']);
     $r->get('/admin/registre', [AdminController::class, 'audit'], ['admin']);
+    $r->post('/admin/avisos/correus', [AdminController::class, 'dismissMailAlert'], ['admin']);
     $r->get('/admin/correus', [AdminController::class, 'emails'], ['admin']);
 };

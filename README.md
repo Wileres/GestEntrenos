@@ -86,9 +86,19 @@ Permisos: `storage/` i `.env` han de ser escrivibles pel servidor web i no acces
 * *Categories*: crea, edita, ordena, activa/desactiva (als exercicis i entrenaments es mostren com a «Equips»). Una categoria amb relacions no es pot eliminar (es desactiva).
 * *Exercicis*: crea'ls assignats a un o més equips (categories), amb dades opcionals i fitxers (PDF, JPG, PNG, WEBP, DOCX, XLSX i MP4 si `ALLOW_MP4=true`).
 * *Entrenaments*: crea'l com a esborrany, afegeix exercicis del catàleg amb els botons *Puja / Baixa / Treu* (funciona sense JavaScript), duració i observacions per exercici. *Publica* notifica per correu els entrenadors afectats (un sol correu per persona). *Cancel·la* també notifica. En editar un entrenament publicat, els canvis de data/hora es notifiquen sempre; la resta, si marques la casella.
-* *Administració*: configuració del correu, logotip, historial de correus i registre d'activitat.
+* *Administradors*: crea altres usuaris administradors (reben un correu d'activació); es poden desactivar però mai un mateix ni l'últim actiu.
+* *Entrenadors › Elimina*: esborra l'entrenador i les seves assignacions (amb confirmació). Si només vols impedir-li l'accés, desactiva'l.
+* Avís de correus fallits del panell: es pot descartar amb «Descarta l'avís»; tornarà a sortir si hi ha errors nous.
+* *Administració*: configuració del correu, **logotip i icones**, historial de correus i registre d'activitat.
 
-**Migració d'una instal·lació existent** (elimina els equips): executa `database/migrations/002_remove_teams.sql` sobre la BD.
+### Notificacions
+Quan es crea (o s'activa) un exercici, o es publica/modifica/cancel·la un entrenament, els entrenadors amb algun dels equips (categories) afectats reben: una notificació dins l'aplicació (campaneta «Notificacions»), una notificació al navegador (Web Push, si l'han activada a *Notificacions*) i un correu (si no l'han desactivat). Cada entrenador rep un únic avís encara que coincideixi en diverses categories. Els entrenaments es notifiquen en publicar-los, no quan són esborranys.
+Web Push funciona sense llibreries (RFC 8291 + VAPID) i requereix HTTPS; a l'iPhone/iPad cal haver instal·lat abans l'aplicació a la pantalla d'inici. Les claus VAPID es generen soles i la privada es desa xifrada.
+
+### Aplicació instal·lable (PWA)
+Funciona a l'arrel del domini i en subdirectoris. A *Administració › Logotip i icones* es configuren el logotip, les icones (favicon 16/32, Apple 180, PWA 192/512 i maskable — es poden generar totes a partir del logotip amb GD o pujar-les una per una) i el nom, nom curt i colors de l'app. El service worker només desa CSS, JS i icones (mai pàgines, POST ni dades privades), està versionat i esborra les memòries cau antigues; sense connexió mostra una pàgina d'avís. El botó «Instal·la l'aplicació» només apareix quan el navegador ho permet; a iPhone/iPad mostra les instruccions per a «Afegeix a la pantalla d'inici».
+
+**Actualització d'una instal·lació existent:** executa, per ordre i només les que encara no hi hagis aplicat, `database/migrations/002_remove_teams.sql` (elimina els equips) i `database/migrations/003_notifications.sql` (notificacions i preferències de correu).
 
 **Entrenador**: activa el compte des del correu, inicia sessió amb el correu i la contrasenya, i consulta el panell, els exercicis (cerca i filtres) i els seus entrenaments. Pot descarregar els adjunts autoritzats.
 

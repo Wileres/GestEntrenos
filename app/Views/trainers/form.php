@@ -29,6 +29,12 @@
 </form>
 <?php if ($trainer): ?>
 <section class="card">
+    <h2>Eliminar l'entrenador</h2>
+    <p class="muted">S'esborra el compte i les seves assignacions. Si només vols que no pugui entrar, desactiva'l.</p>
+    <?= post_form_open('/entrenadors/' . $trainer['id'] . '/eliminar', 'Vols eliminar definitivament aquest entrenador? Aquesta acció no es pot desfer.') ?>
+        <button class="btn btn-danger" type="submit">Elimina l'entrenador</button></form>
+</section>
+<section class="card">
     <h2>Activació del compte</h2>
     <?php if ((int) $trainer['has_password']): ?>
         <p>Aquest entrenador ja ha activat el compte<?= $trainer['last_login_at'] ? ' (darrer accés: ' . e(fmt_datetime($trainer['last_login_at'])) . ')' : '' ?>.</p>

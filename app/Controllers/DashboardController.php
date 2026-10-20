@@ -16,6 +16,8 @@ final class DashboardController extends Controller
     {
         $u = $this->user();
         if ($u['role'] === 'admin') {
+            $dismissed = \App\Services\SettingsService::get('mail_alert_dismissed_at');
+            $since = max(date('Y-m-d H:i:s', time() - 7 * 86400), $dismissed);
             $this->render('dashboard/admin', [
                 'title' => 'Panell principal',
                 'stats' => [
@@ -26,8 +28,8 @@ final class DashboardController extends Controller
                 'upcoming' => Training::upcomingFor($u),
                 'latest' => Training::latest(),
                 'trainers' => User::latestTrainers(),
-                'failedMails' => Db::all("SELECT recipient, type, error_message, created_at FROM email_logs WHERE status = 'failed' ORDER BY id DESC LIMIT 5"),
-                'failedCount' => (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE status = 'failed' AND created_at >= ?", [date('Y-m-d H:i:s', time() - 7 * 86400)]),
+                'failedMails' => Db::all("SELECT recipient, type, error_message, created_at FROM email_logs WHERE status = 'failed' AND created_at > ? ORDER BY id DESC LIMIT 5", [$since]),
+                'failedCount' => (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE status = 'failed' AND created_at > ?", [$since]),
                 'activity' => Db::all(
                     'SELECT a.action, a.entity, a.result, a.created_at, u.first_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id ORDER BY a.id DESC LIMIT 8'
                 ),
@@ -39,10 +41,7 @@ final class DashboardController extends Controller
             'upcoming' => Training::upcomingFor($u),
             'categories' => User::categories((int) $u['id']),
             'exercises' => Exercise::latest(),
-            'notifications' => Db::all(
-                "SELECT subject, created_at FROM email_logs WHERE recipient = ? AND status = 'sent' AND type LIKE 'training_%' ORDER BY id DESC LIMIT 5",
-                [(string) $u['email']]
-            ),
+            'notifications' => \App\Services\Notifier::recent((int) $u['id'], 5),
         ]);
     }
 }

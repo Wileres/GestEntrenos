@@ -20,7 +20,8 @@ abstract class Controller
     /** Torna a mostrar un formulari amb els errors i les dades introduïdes. */
     protected function invalid(string $template, array $data, array $errors, array $old): void
     {
-        $this->render($template, $data + ['errors' => $errors, 'old' => $old], 422);
+        $layout = \App\Services\AuthService::user() === null ? 'auth' : 'main';
+        $this->render($template, $data + ['errors' => $errors, 'old' => $old], 422, $layout);
     }
 
     protected function done(string $message, string $to, string $type = 'success'): never

@@ -21,7 +21,8 @@
     </section>
     <section class="card"><h2>Notificacions recents</h2>
         <?php if ($notifications): ?><ul class="list"><?php foreach ($notifications as $n): ?>
-            <li><?= e($n['subject']) ?> <small class="muted"><?= e(fmt_datetime($n['created_at'])) ?></small></li>
+            <li><a href="<?= e(url($n['url'] ?: '/notificacions')) ?>"><?= e($n['title']) ?></a>: <?= e($n['body']) ?> <small class="muted"><?= e(fmt_datetime($n['created_at'])) ?></small></li>
         <?php endforeach; ?></ul><?php else: ?><p class="muted">No tens notificacions.</p><?php endif; ?>
+        <p><a href="<?= e(url('/notificacions')) ?>">Configura les notificacions</a></p>
     </section>
 </div>
