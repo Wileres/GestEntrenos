@@ -15,7 +15,7 @@ $club = \App\Services\SettingsService::clubName();
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? 'Entrenaments') ?> · Entrenaments JSPM</title>
 <?php \App\Helpers\View::component('head_pwa'); ?>
-    <link rel="preload" href="<?= e(asset('fonts/familjen-grotesk-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?= e(asset('fonts/google-sans-flex-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </head>
@@ -27,35 +27,35 @@ $club = \App\Services\SettingsService::clubName();
             <?php if ($logo): ?><img src="<?= e(url('/logotip')) ?>" alt="" class="brand-logo" width="40" height="40"><?php endif; ?>
             <span>Entrenaments JSPM</span>
         </a>
-        <button type="button" class="btn btn-sm btn-install" data-install hidden>Instal·la l'aplicació</button>
+        <button type="button" class="btn btn-sm btn-install" data-install hidden><?= icon('smartphone') ?>Instal·la l'aplicació</button>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal">Menú</button>
         <nav id="menu-principal" class="main-nav" aria-label="Navegació principal">
-            <a href="<?= e(url('/')) ?>"<?= $active('/') ?>>Inici</a>
-            <a href="<?= e(url('/entrenaments')) ?>"<?= $active('/entrenaments') ?>>Entrenaments</a>
-            <a href="<?= e(url('/exercicis')) ?>"<?= $active('/exercicis') ?>>Exercicis</a>
+            <a href="<?= e(url('/')) ?>"<?= $active('/') ?>><?= icon('home') ?>Inici</a>
+            <a href="<?= e(url('/entrenaments')) ?>"<?= $active('/entrenaments') ?>><?= icon('calendar') ?>Entrenaments</a>
+            <a href="<?= e(url('/exercicis')) ?>"<?= $active('/exercicis') ?>><?= icon('ball') ?>Exercicis</a>
             <?php if ($user && !$admin): $unread = \App\Services\Notifier::unreadCount((int) $user['id']); ?>
-                <a href="<?= e(url('/notificacions')) ?>"<?= $active('/notificacions') ?>>Notificacions<?= $unread ? ' <span class="badge badge-danger" aria-label="' . $unread . ' sense llegir">' . $unread . '</span>' : '' ?></a>
+                <a href="<?= e(url('/notificacions')) ?>"<?= $active('/notificacions') ?>><?= icon('bell') ?>Notificacions<?= $unread ? ' <span class="badge badge-danger" aria-label="' . $unread . ' sense llegir">' . $unread . '</span>' : '' ?></a>
             <?php endif; ?>
             <?php if ($admin): ?>
-                <a href="<?= e(url('/entrenadors')) ?>"<?= $active('/entrenadors') ?>>Entrenadors</a>
-                <a href="<?= e(url('/categories')) ?>"<?= $active('/categories') ?>>Categories</a>
+                <a href="<?= e(url('/entrenadors')) ?>"<?= $active('/entrenadors') ?>><?= icon('users') ?>Entrenadors</a>
+                <a href="<?= e(url('/categories')) ?>"<?= $active('/categories') ?>><?= icon('tag') ?>Categories</a>
                 <details class="nav-menu">
-                    <summary>Administració</summary>
+                    <summary><?= icon('shield') ?>Administració</summary>
                     <div class="nav-menu-list">
-                        <a href="<?= e(url('/administradors')) ?>">Administradors</a>
-                        <a href="<?= e(url('/admin/correu')) ?>">Configuració del correu</a>
-                        <a href="<?= e(url('/admin/identitat')) ?>">Logotip i icones</a>
-                        <a href="<?= e(url('/admin/correus')) ?>">Historial de correus</a>
-                        <a href="<?= e(url('/admin/registre')) ?>">Registre d'activitat</a>
+                        <a href="<?= e(url('/administradors')) ?>"><?= icon('shield') ?>Administradors</a>
+                        <a href="<?= e(url('/admin/correu')) ?>"><?= icon('mail') ?>Configuració del correu</a>
+                        <a href="<?= e(url('/admin/identitat')) ?>"><?= icon('image') ?>Logotip i icones</a>
+                        <a href="<?= e(url('/admin/correus')) ?>"><?= icon('history') ?>Historial de correus</a>
+                        <a href="<?= e(url('/admin/registre')) ?>"><?= icon('list') ?>Registre d'activitat</a>
                     </div>
                 </details>
             <?php endif; ?>
             <details class="nav-menu nav-user">
-                <summary><?= e($user['first_name'] ?? '') ?></summary>
+                <summary><?= icon('user') ?><?= e($user['first_name'] ?? '') ?></summary>
                 <div class="nav-menu-list">
-                    <a href="<?= e(url('/compte')) ?>">El meu perfil</a>
-                    <a href="<?= e(url('/compte/contrasenya')) ?>">Canvia la contrasenya</a>
-                    <form method="post" action="<?= e(url('/sortir')) ?>"><?= csrf_field() ?><button type="submit" class="link-button">Tanca la sessió</button></form>
+                    <a href="<?= e(url('/compte')) ?>"><?= icon('user') ?>El meu perfil</a>
+                    <a href="<?= e(url('/compte/contrasenya')) ?>"><?= icon('key') ?>Canvia la contrasenya</a>
+                    <form method="post" action="<?= e(url('/sortir')) ?>"><?= csrf_field() ?><button type="submit" class="link-button"><?= icon('logout') ?>Tanca la sessió</button></form>
                 </div>
             </details>
         </nav>
@@ -74,7 +74,7 @@ $club = \App\Services\SettingsService::clubName();
         <h2 id="confirm-title">Confirmes l'acció?</h2>
         <p id="confirm-text"></p>
         <div class="modal-actions">
-            <button value="cancel" class="btn btn-secondary">Cancel·la</button>
+            <button value="cancel" class="btn btn-secondary"><?= icon('x') ?>Cancel·la</button>
             <button value="ok" class="btn btn-danger">Confirma</button>
         </div>
     </form>

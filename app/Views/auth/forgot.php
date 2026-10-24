@@ -3,6 +3,6 @@
 <form method="post" action="<?= e(url('/contrasenya/oblidada')) ?>" class="stack" data-loading>
     <?= csrf_field() ?>
     <?= input_field('email', 'Correu electrònic', ['type' => 'email', 'required' => true, 'attrs' => ['autocomplete' => 'email', 'maxlength' => 190]]) ?>
-    <button class="btn btn-primary btn-block" type="submit">Envia l'enllaç</button>
+    <button class="btn btn-primary btn-block" type="submit"><?= icon('send') ?>Envia l'enllaç</button>
 </form>
 <p class="center"><a href="<?= e(url('/acces')) ?>">Torna a l'accés</a></p>

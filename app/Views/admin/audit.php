@@ -1,7 +1,7 @@
 <h1>Registre d'activitat</h1>
 <form method="get" class="filters card">
     <?= select_field('action', 'Acció', array_combine($actions, $actions), ['value' => $action, 'blank' => 'Totes']) ?>
-    <div class="filters-actions"><button class="btn btn-primary" type="submit">Filtra</button></div>
+    <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('filter') ?>Filtra</button></div>
 </form>
 <div class="table-wrap"><table class="table">
     <thead><tr><th>Data</th><th>Usuari</th><th>Acció</th><th>Entitat</th><th>Resultat</th><th>IP</th><th>Detalls</th></tr></thead>

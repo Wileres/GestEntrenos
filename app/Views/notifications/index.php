@@ -12,7 +12,7 @@
         <h2>Per correu</h2>
         <?= post_form_open('/notificacions/preferencies', '', 'stack') ?>
             <label class="check"><input type="checkbox" name="notify_email" value="1"<?= checked($notifyEmail) ?>> Vull rebre correus quan hi hagi novetats als meus equips</label>
-            <button class="btn btn-secondary" type="submit">Desa</button>
+            <button class="btn btn-secondary" type="submit"><?= icon('save') ?>Desa</button>
         </form>
     </section>
 </div>

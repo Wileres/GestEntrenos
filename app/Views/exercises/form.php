@@ -33,7 +33,7 @@
             <?php if (field_error('files')): ?><p class="field-error"><?= e(field_error('files')) ?></p><?php endif; ?>
         </div>
     </section>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">Desa l'exercici</button> <a class="btn btn-secondary" href="<?= e(url('/exercicis')) ?>">Cancel·la</a></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit"><?= icon('save') ?>Desa l'exercici</button> <a class="btn btn-secondary" href="<?= e(url('/exercicis')) ?>">Cancel·la</a></div>
 </form>
 <?php foreach ($files as $f): ?>
     <form id="del-file-<?= (int) $f['id'] ?>" method="post" action="<?= e(url('/fitxers/exercici/' . $f['id'] . '/eliminar')) ?>" data-confirm="Vols eliminar aquest fitxer?"><?= csrf_field() ?></form>

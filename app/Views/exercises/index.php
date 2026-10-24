@@ -9,7 +9,7 @@
     <?= select_field('difficulty', 'Dificultat', \App\Helpers\Labels::DIFFICULTY, ['value' => $filters['difficulty'], 'blank' => 'Totes']) ?>
     <?= input_field('players', 'Jugadors', ['type' => 'number', 'value' => $filters['players'], 'attrs' => ['min' => 1, 'max' => 200]]) ?>
     <?php if (is_admin()): ?><?= select_field('status', 'Estat', ['active' => 'Actius', 'inactive' => 'Inactius'], ['value' => $filters['status'], 'blank' => 'Tots']) ?><?php endif; ?>
-    <div class="filters-actions"><button class="btn btn-primary" type="submit">Cerca</button> <a class="btn btn-secondary" href="<?= e(url('/exercicis')) ?>">Neteja</a></div>
+    <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('search') ?>Cerca</button> <a class="btn btn-secondary" href="<?= e(url('/exercicis')) ?>">Neteja</a></div>
 </form>
 <div class="table-wrap"><table class="table">
     <thead><tr><th>Nom</th><th>Equips</th><th>Objectiu</th><th>Durada</th><th>Jugadors</th><th>Dificultat</th></tr></thead>

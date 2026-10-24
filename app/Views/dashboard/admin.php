@@ -8,12 +8,12 @@
 </div>
 <div class="grid grid-4">
     <?php foreach ($stats as $label => [$n, $link]): ?>
-        <a class="card stat" href="<?= e(url($link)) ?>"><span class="stat-n"><?= (int) $n ?></span><span><?= e($label) ?></span></a>
+        <a class="card stat" href="<?= e(url($link)) ?>"><span class="stat-icon"><?= icon(['Entrenadors actius' => 'users', 'Categories' => 'tag', 'Exercicis' => 'ball'][$label] ?? 'list') ?></span><span class="stat-n"><?= (int) $n ?></span><span><?= e($label) ?></span></a>
     <?php endforeach; ?>
 </div>
 <?php if ($failedCount > 0): ?>
     <div class="alert alert-warning" role="status">Hi ha <?= (int) $failedCount ?> correu(s) fallit(s) els darrers 7 dies. <a href="<?= e(url('/admin/correus', ['status' => 'failed'])) ?>">Revisa'ls</a>.
-        <?= post_form_open('/admin/avisos/correus') ?><button class="btn btn-sm btn-secondary" type="submit">Descarta l'avís</button></form></div>
+        <?= post_form_open('/admin/avisos/correus') ?><button class="btn btn-sm btn-secondary" type="submit"><?= icon('eye-off') ?>Descarta l'avís</button></form></div>
 <?php endif; ?>
 <div class="grid grid-2">
     <section class="card"><h2>Pròxims entrenaments</h2>

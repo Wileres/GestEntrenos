@@ -10,7 +10,7 @@
             <td data-label="Accions" class="actions">
                 <a class="btn btn-sm btn-secondary" href="<?= e(url('/categories/' . $c['id'] . '/editar')) ?>">Edita</a>
                 <?php if (!$c['in_use']): ?>
-                    <?= post_form_open('/categories/' . $c['id'] . '/eliminar', 'Vols eliminar la categoria «' . $c['name'] . '»?') ?><button class="btn btn-sm btn-danger" type="submit">Elimina</button></form>
+                    <?= post_form_open('/categories/' . $c['id'] . '/eliminar', 'Vols eliminar la categoria «' . $c['name'] . '»?') ?><button class="btn btn-sm btn-danger" type="submit"><?= icon('trash') ?>Elimina</button></form>
                 <?php endif; ?>
             </td>
         </tr>

@@ -2,7 +2,7 @@
 <div class="page-head"><h1><?= e($e['name']) ?></h1>
 <?php if (is_admin()): ?><div class="row">
     <a class="btn btn-secondary" href="<?= e(url('/exercicis/' . $e['id'] . '/editar')) ?>">Edita</a>
-    <?= post_form_open('/exercicis/' . $e['id'] . '/eliminar', 'Vols eliminar definitivament aquest exercici?') ?><button class="btn btn-danger" type="submit">Elimina</button></form>
+    <?= post_form_open('/exercicis/' . $e['id'] . '/eliminar', 'Vols eliminar definitivament aquest exercici?') ?><button class="btn btn-danger" type="submit"><?= icon('trash') ?>Elimina</button></form>
 </div><?php endif; ?></div>
 <?php if ($files): ?>
 <section class="card card-files" aria-labelledby="h-adjunts">

@@ -5,7 +5,7 @@
     <?= select_field('when', 'Període', ['upcoming' => 'Pròxims', 'past' => 'Passats', 'all' => 'Tots'], ['value' => $filters['when']]) ?>
     <?= select_field('category', 'Equip', $catOpts, ['value' => $filters['category'], 'blank' => 'Totes']) ?>
     <?php if (is_admin()): ?><?= select_field('status', 'Estat', \App\Helpers\Labels::TRAINING_STATUS, ['value' => $filters['status'], 'blank' => 'Tots']) ?><?php endif; ?>
-    <div class="filters-actions"><button class="btn btn-primary" type="submit">Filtra</button> <a class="btn btn-secondary" href="<?= e(url('/entrenaments')) ?>">Neteja</a></div>
+    <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('filter') ?>Filtra</button> <a class="btn btn-secondary" href="<?= e(url('/entrenaments')) ?>">Neteja</a></div>
 </form>
 <div class="table-wrap"><table class="table">
     <thead><tr><th>Data</th><th>Títol</th><th>Equips</th><th>Durada</th><th>Estat</th></tr></thead>

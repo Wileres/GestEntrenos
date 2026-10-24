@@ -12,12 +12,12 @@
         <?= input_field('reply_to', 'Adreça de resposta', ['type' => 'email', 'attrs' => ['maxlength' => 190]]) ?>
     </div>
     <label class="check"><input type="checkbox" name="enabled" value="1"<?= checked((string) old('enabled') === '1') ?>> Activa l'enviament de correus</label>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">Desa la configuració</button></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit"><?= icon('save') ?>Desa la configuració</button></div>
 </form>
 <form method="post" action="<?= e(url('/admin/correu/prova')) ?>" class="card stack" data-loading>
     <?= csrf_field() ?>
     <h2>Correu de prova</h2>
     <p class="muted">Desa primer la configuració. El correu de prova s'envia encara que els correus estiguin desactivats.</p>
     <?= input_field('test_email', 'Envia a', ['type' => 'email', 'required' => true, 'value' => current_user()['email'] ?? '']) ?>
-    <div class="form-actions"><button class="btn btn-secondary" type="submit">Envia el correu de prova</button></div>
+    <div class="form-actions"><button class="btn btn-secondary" type="submit"><?= icon('send') ?>Envia el correu de prova</button></div>
 </form>

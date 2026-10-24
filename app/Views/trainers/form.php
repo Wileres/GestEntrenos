@@ -32,7 +32,7 @@
     <h2>Eliminar l'entrenador</h2>
     <p class="muted">S'esborra el compte i les seves assignacions. Si només vols que no pugui entrar, desactiva'l.</p>
     <?= post_form_open('/entrenadors/' . $trainer['id'] . '/eliminar', 'Vols eliminar definitivament aquest entrenador? Aquesta acció no es pot desfer.') ?>
-        <button class="btn btn-danger" type="submit">Elimina l'entrenador</button></form>
+        <button class="btn btn-danger" type="submit"><?= icon('trash') ?>Elimina l'entrenador</button></form>
 </section>
 <section class="card">
     <h2>Activació del compte</h2>

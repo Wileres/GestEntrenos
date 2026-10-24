@@ -49,7 +49,7 @@ $last = count($rows) - 1;
         </ol>
         <div class="row add-exercise">
             <?= select_field('add_exercise', 'Afegeix un exercici del catàleg', $catalogOpts, ['blank' => 'Selecciona un exercici', 'value' => '']) ?>
-            <button class="btn btn-secondary" type="submit" name="action" value="add" formnovalidate>Afegeix</button>
+            <button class="btn btn-secondary" type="submit" name="action" value="add" formnovalidate><?= icon('plus') ?>Afegeix</button>
         </div>
     </section>
     <section class="card">
@@ -65,7 +65,7 @@ $last = count($rows) - 1;
             <label class="check"><input type="checkbox" name="notify_changes" value="1"<?= checked(old('notify_changes') === '1') ?>> Notifica per correu les modificacions als entrenadors (els canvis de data o hora sempre es notifiquen)</label>
         <?php endif; ?>
     </section>
-    <div class="form-actions"><button class="btn btn-primary" type="submit" name="action" value="save">Desa l'entrenament</button>
+    <div class="form-actions"><button class="btn btn-primary" type="submit" name="action" value="save"><?= icon('save') ?>Desa l'entrenament</button>
         <a class="btn btn-secondary" href="<?= e(url('/entrenaments')) ?>">Cancel·la</a></div>
 </form>
 <?php foreach ($files as $f): ?>

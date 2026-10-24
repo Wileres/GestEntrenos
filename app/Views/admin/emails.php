@@ -1,7 +1,7 @@
 <h1>Historial de correus</h1>
 <form method="get" class="filters card">
     <?= select_field('status', 'Estat', ['sent' => 'Enviats', 'failed' => 'Fallits', 'skipped' => 'Omesos'], ['value' => $status, 'blank' => 'Tots']) ?>
-    <div class="filters-actions"><button class="btn btn-primary" type="submit">Filtra</button></div>
+    <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('filter') ?>Filtra</button></div>
 </form>
 <div class="table-wrap"><table class="table">
     <thead><tr><th>Data</th><th>Tipus</th><th>Destinatari</th><th>Estat</th><th>Intents</th><th>Error</th></tr></thead>

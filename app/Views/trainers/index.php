@@ -2,7 +2,7 @@
 <form method="get" class="filters card" role="search">
     <?= input_field('q', 'Cerca per nom o correu', ['value' => $q, 'attrs' => ['maxlength' => 100]]) ?>
     <?= select_field('status', 'Estat', ['active' => 'Actius', 'inactive' => 'Inactius'], ['value' => $status, 'blank' => 'Tots']) ?>
-    <div class="filters-actions"><button class="btn btn-primary" type="submit">Filtra</button> <a class="btn btn-secondary" href="<?= e(url('/entrenadors')) ?>">Neteja</a></div>
+    <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('filter') ?>Filtra</button> <a class="btn btn-secondary" href="<?= e(url('/entrenadors')) ?>">Neteja</a></div>
 </form>
 <div class="table-wrap">
 <table class="table">
@@ -19,7 +19,7 @@
                 <?= post_form_open('/entrenadors/' . $t['id'] . '/estat', (int) $t['is_active'] ? 'Vols desactivar aquest entrenador? No podrà iniciar sessió.' : '') ?>
                     <button class="btn btn-sm btn-secondary" type="submit"><?= (int) $t['is_active'] ? 'Desactiva' : 'Activa' ?></button></form>
                 <?= post_form_open('/entrenadors/' . $t['id'] . '/eliminar', 'Vols eliminar definitivament l\'entrenador «' . $t['first_name'] . ' ' . $t['last_name'] . '»? Aquesta acció no es pot desfer.') ?>
-                    <button class="btn btn-sm btn-danger" type="submit">Elimina</button></form>
+                    <button class="btn btn-sm btn-danger" type="submit"><?= icon('trash') ?>Elimina</button></form>
             </td>
         </tr>
     <?php endforeach; ?>

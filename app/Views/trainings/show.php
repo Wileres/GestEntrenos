@@ -7,7 +7,7 @@
             <input type="hidden" name="status" value="<?= e($s) ?>">
             <button class="btn <?= $s === 'cancelled' ? 'btn-danger' : 'btn-primary' ?>" type="submit"><?= e(['published' => 'Publica', 'cancelled' => 'Cancel·la', 'finished' => 'Marca com a finalitzat', 'draft' => 'Torna a esborrany'][$s]) ?></button></form>
     <?php endforeach; ?>
-    <?= post_form_open('/entrenaments/' . $t['id'] . '/eliminar', 'Vols eliminar definitivament aquest entrenament?') ?><button class="btn btn-danger" type="submit">Elimina</button></form>
+    <?= post_form_open('/entrenaments/' . $t['id'] . '/eliminar', 'Vols eliminar definitivament aquest entrenament?') ?><button class="btn btn-danger" type="submit"><?= icon('trash') ?>Elimina</button></form>
 </div><?php endif; ?></div>
 <?php if ($files): ?>
 <section class="card card-files" aria-labelledby="h-adjunts">

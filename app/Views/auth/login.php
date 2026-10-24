@@ -4,6 +4,6 @@
     <?= csrf_field() ?>
     <?= input_field('login', 'Usuari o correu electrònic', ['required' => true, 'attrs' => ['autocomplete' => 'username', 'autofocus' => 'autofocus', 'maxlength' => 190]]) ?>
     <?= input_field('password', 'Contrasenya', ['type' => 'password', 'required' => true, 'attrs' => ['autocomplete' => 'current-password', 'maxlength' => 128]]) ?>
-    <button class="btn btn-primary btn-block" type="submit">Entra</button>
+    <button class="btn btn-primary btn-block" type="submit"><?= icon('logout') ?>Entra</button>
 </form>
 <p class="center"><a href="<?= e(url('/contrasenya/oblidada')) ?>">Has oblidat la contrasenya?</a></p>

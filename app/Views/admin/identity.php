@@ -9,7 +9,7 @@
         <?= csrf_field() ?>
         <div class="field"><label for="f-logo">Nou logotip (PNG, JPG o WEBP, màxim 2 MB i 2000 px)</label>
             <input type="file" id="f-logo" name="logo" accept=".png,.jpg,.jpeg,.webp" required></div>
-        <button class="btn btn-primary" type="submit">Puja el logotip</button>
+        <button class="btn btn-primary" type="submit"><?= icon('upload') ?>Puja el logotip</button>
     </form>
 </section>
 
@@ -32,10 +32,10 @@
                 <?= csrf_field() ?>
                 <div class="field"><label for="icon-<?= e($name) ?>" class="sr-only">Fitxer PNG per a <?= e($i['label']) ?></label>
                     <input type="file" id="icon-<?= e($name) ?>" name="icon" accept=".png" required></div>
-                <button class="btn btn-sm btn-secondary" type="submit">Puja</button>
+                <button class="btn btn-sm btn-secondary" type="submit"><?= icon('upload') ?>Puja</button>
             </form>
             <?php if ($i['custom']): ?>
-                <?= post_form_open('/admin/identitat/icona/' . $name . '/restaura', 'Vols tornar a la icona per defecte?') ?><button class="btn btn-sm btn-danger" type="submit">Restaura</button></form>
+                <?= post_form_open('/admin/identitat/icona/' . $name . '/restaura', 'Vols tornar a la icona per defecte?') ?><button class="btn btn-sm btn-danger" type="submit"><?= icon('refresh') ?>Restaura</button></form>
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
@@ -52,6 +52,6 @@
             <?= input_field('pwa_theme_color', 'Color del tema (barra del navegador)', ['type' => 'color', 'required' => true]) ?>
             <?= input_field('pwa_bg_color', 'Color de fons de la pantalla de càrrega', ['type' => 'color', 'required' => true]) ?>
         </div>
-        <button class="btn btn-primary" type="submit">Desa els ajustos</button>
+        <button class="btn btn-primary" type="submit"><?= icon('save') ?>Desa els ajustos</button>
     </form>
 </section>

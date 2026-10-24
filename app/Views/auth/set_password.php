@@ -4,5 +4,5 @@
     <?= csrf_field() ?>
     <?= input_field('password', 'Contrasenya nova', ['type' => 'password', 'required' => true, 'attrs' => ['autocomplete' => 'new-password', 'minlength' => 8, 'maxlength' => 128]]) ?>
     <?= input_field('password_confirmation', 'Repeteix la contrasenya', ['type' => 'password', 'required' => true, 'attrs' => ['autocomplete' => 'new-password', 'maxlength' => 128]]) ?>
-    <button class="btn btn-primary btn-block" type="submit">Desa la contrasenya</button>
+    <button class="btn btn-primary btn-block" type="submit"><?= icon('save') ?>Desa la contrasenya</button>
 </form>
