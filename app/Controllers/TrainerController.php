@@ -7,7 +7,7 @@ namespace App\Controllers;
 use App\Helpers\Db;
 use App\Helpers\Request;
 use App\Helpers\Response;
-use App\Models\Category;
+use App\Models\Team;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\NotificationService;
@@ -26,7 +26,7 @@ final class TrainerController extends Controller
     {
         return [
             'title' => $trainer ? 'Edita l\'entrenador' : 'Nou entrenador', 'trainer' => $trainer,
-            'categories' => Category::all(),
+            'teams' => Team::all(),
             'pendingActivation' => $trainer ? TokenService::hasPendingActivation((int) $trainer['id']) : false,
         ];
     }
@@ -40,7 +40,7 @@ final class TrainerController extends Controller
     {
         $id = $this->id($p);
         $t = User::findTrainer($id) ?? Response::notFound();
-        $this->render('trainers/form', $this->formData($t) + ['old' => $t + ['category_ids' => User::categoryIds($id)]]);
+        $this->render('trainers/form', $this->formData($t) + ['old' => $t + ['team_ids' => User::teamIds($id)]]);
     }
 
     public function store(Request $r, array $p): void
@@ -67,15 +67,15 @@ final class TrainerController extends Controller
         if (!$v->fails() && User::emailTaken($d['email'], $id)) {
             $v->error('email', 'Ja existeix un usuari amb aquest correu electrònic.');
         }
-        $catIds = $this->onlyKnown($r->intList('category_ids'), array_column(Category::all(), 'id'));
+        $catIds = $this->onlyKnown($r->intList('team_ids'), array_column(Team::all(), 'id'));
         if ($v->fails()) {
             $t = $id ? User::findTrainer($id) : null;
-            $this->invalid('trainers/form', $this->formData($t), $v->errors(), $d + ['category_ids' => $catIds]);
+            $this->invalid('trainers/form', $this->formData($t), $v->errors(), $d + ['team_ids' => $catIds]);
             return;
         }
 
         $isNew = $id === null;
-        $oldCats = $isNew ? [] : User::categoryIds($id);
+        $oldCats = $isNew ? [] : User::teamIds($id);
         $token = null;
         $id = Db::transaction(function () use ($id, $d, $catIds, $isNew, &$token) {
             $id = User::saveTrainer($id, ['is_active' => $d['is_active'] === '1'] + $d);
@@ -87,7 +87,7 @@ final class TrainerController extends Controller
         });
         AuditService::log($isNew ? 'trainer_created' : 'trainer_updated', 'user', $id);
         if (array_diff($catIds, $oldCats) || array_diff($oldCats, $catIds)) {
-            AuditService::log('trainer_categories_assigned', 'user', $id, 'ok', 'Categories: ' . implode(',', $catIds));
+            AuditService::log('trainer_teams_assigned', 'user', $id, 'ok', 'Equips: ' . implode(',', $catIds));
         }
 
         if ($isNew) {

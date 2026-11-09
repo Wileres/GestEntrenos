@@ -1,9 +1,9 @@
-<?php $catOpts = []; foreach ($categories as $c) { $catOpts[$c['id']] = $c['name']; } ?>
+<?php $catOpts = []; foreach ($teams as $c) { $catOpts[$c['id']] = $c['name']; } ?>
 <div class="page-head"><h1>Entrenaments</h1>
     <?php if (is_admin()): ?><a class="btn btn-primary" href="<?= e(url('/entrenaments/nou')) ?>">Nou entrenament</a><?php endif; ?></div>
 <form method="get" class="filters card">
     <?= select_field('when', 'Període', ['upcoming' => 'Pròxims', 'past' => 'Passats', 'all' => 'Tots'], ['value' => $filters['when']]) ?>
-    <?= select_field('category', 'Equip', $catOpts, ['value' => $filters['category'], 'blank' => 'Totes']) ?>
+    <?= select_field('team', 'Equip', $catOpts, ['value' => $filters['team'], 'blank' => 'Totes']) ?>
     <?php if (is_admin()): ?><?= select_field('status', 'Estat', \App\Helpers\Labels::TRAINING_STATUS, ['value' => $filters['status'], 'blank' => 'Tots']) ?><?php endif; ?>
     <div class="filters-actions"><button class="btn btn-primary" type="submit"><?= icon('filter') ?>Filtra</button> <a class="btn btn-secondary" href="<?= e(url('/entrenaments')) ?>">Neteja</a></div>
 </form>
@@ -14,7 +14,7 @@
         <tr>
             <td data-label="Data"><?= e(fmt_date($t['session_date'])) ?> <?= e(fmt_time($t['start_time'])) ?></td>
             <td data-label="Títol"><a href="<?= e(url('/entrenaments/' . $t['id'])) ?>"><?= e($t['title']) ?></a></td>
-            <td data-label="Equips"><?= e($t['categories']) ?></td>
+            <td data-label="Equips"><?= e($t['teams']) ?></td>
             <td data-label="Durada"><?= (int) $t['duration_minutes'] ?> min</td>
             <td data-label="Estat"><?= status_badge($t['status']) ?></td>
         </tr>

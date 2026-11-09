@@ -40,13 +40,7 @@ final class Category
 
     public static function inUse(int $id): bool
     {
-        return (bool) Db::value(
-            'SELECT (SELECT COUNT(*) FROM user_categories WHERE category_id = :a)
-                  + (SELECT COUNT(*) FROM exercises WHERE category_id = :c)
-                  + (SELECT COUNT(*) FROM exercise_categories WHERE category_id = :d)
-                  + (SELECT COUNT(*) FROM training_categories WHERE category_id = :e)',
-            ['a' => $id, 'c' => $id, 'd' => $id, 'e' => $id]
-        );
+        return (bool) Db::value('SELECT 1 FROM teams WHERE category_id = ? LIMIT 1', [$id]);
     }
 
     public static function delete(int $id): void

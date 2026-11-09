@@ -8,13 +8,17 @@
 </div>
 <div class="grid grid-4">
     <?php foreach ($stats as $label => [$n, $link]): ?>
-        <a class="card stat" href="<?= e(url($link)) ?>"><span class="stat-icon"><?= icon(['Entrenadors actius' => 'users', 'Categories' => 'tag', 'Exercicis' => 'ball'][$label] ?? 'list') ?></span><span class="stat-n"><?= (int) $n ?></span><span><?= e($label) ?></span></a>
+        <a class="card stat" href="<?= e(url($link)) ?>"><span class="stat-icon"><?= icon(['Entrenadors actius' => 'users', 'Equips' => 'shield', 'Jugadors' => 'user', 'Faltes aquesta setmana' => 'clock', 'Exercicis' => 'ball'][$label] ?? 'list') ?></span><span class="stat-n"><?= (int) $n ?></span><span><?= e($label) ?></span></a>
     <?php endforeach; ?>
 </div>
 <?php if ($failedCount > 0): ?>
     <div class="alert alert-warning" role="status">Hi ha <?= (int) $failedCount ?> correu(s) fallit(s) els darrers 7 dies. <a href="<?= e(url('/admin/correus', ['status' => 'failed'])) ?>">Revisa'ls</a>.
         <?= post_form_open('/admin/avisos/correus') ?><button class="btn btn-sm btn-secondary" type="submit"><?= icon('eye-off') ?>Descarta l'avís</button></form></div>
 <?php endif; ?>
+<section class="card"><h2><?= icon('clock') ?>Entrenaments d'avui</h2>
+    <?php \App\Helpers\View::component('session_list', ['items' => $todaySessions, 'empty' => 'Avui no hi ha cap entrenament al calendari.']); ?>
+    <p><a href="<?= e(url('/assistencia/resum')) ?>">Resum de faltes de la setmana</a> · <a href="<?= e(url('/calendari')) ?>">Calendari</a></p>
+</section>
 <div class="grid grid-2">
     <section class="card"><h2>Pròxims entrenaments</h2>
         <?php \App\Helpers\View::component('training_list', ['items' => $upcoming, 'empty' => 'No hi ha entrenaments programats.']); ?>

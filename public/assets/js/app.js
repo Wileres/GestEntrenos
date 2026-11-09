@@ -3,27 +3,35 @@
     'use strict';
     document.documentElement.classList.add('js');
 
-    // Menú mòbil
-    var toggle = document.querySelector('.nav-toggle');
-    var nav = document.getElementById('menu-principal');
-    if (toggle && nav) {
-        toggle.addEventListener('click', function () {
-            var open = nav.classList.toggle('open');
-            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    // Menú hamburguesa (calaix lateral)
+    var menuBtn = document.querySelector('.menu-btn');
+    var drawer = document.getElementById('menu-principal');
+    var backdrop = document.querySelector('.drawer-backdrop');
+    function setDrawer(open) {
+        if (!drawer || !menuBtn) { return; }
+        drawer.classList.toggle('open', open);
+        document.body.classList.toggle('drawer-open', open);
+        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (backdrop) { backdrop.hidden = !open; }
+        if (open) {
+            var first = drawer.querySelector('a, button');
+            if (first) { first.focus(); }
+        } else if (document.activeElement && drawer.contains(document.activeElement)) {
+            menuBtn.focus();
+        }
+    }
+    if (menuBtn && drawer) {
+        menuBtn.addEventListener('click', function () { setDrawer(!drawer.classList.contains('open')); });
+        document.querySelectorAll('[data-drawer-close]').forEach(function (el) {
+            el.addEventListener('click', function () { setDrawer(false); });
+        });
+        drawer.addEventListener('click', function (ev) {
+            if (ev.target.closest && ev.target.closest('a')) { setDrawer(false); }
+        });
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && drawer.classList.contains('open')) { setDrawer(false); }
         });
     }
-
-    // Tanca els menús desplegables en fer clic a fora o prémer Escape
-    document.addEventListener('click', function (ev) {
-        document.querySelectorAll('details.nav-menu[open]').forEach(function (d) {
-            if (!d.contains(ev.target)) { d.removeAttribute('open'); }
-        });
-    });
-    document.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Escape') {
-            document.querySelectorAll('details.nav-menu[open]').forEach(function (d) { d.removeAttribute('open'); });
-        }
-    });
 
     // Confirmació d'accions destructives amb <dialog>
     var dialog = document.getElementById('confirm-dialog');

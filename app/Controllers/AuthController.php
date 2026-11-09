@@ -140,7 +140,7 @@ final class AuthController extends Controller
     {
         $u = $this->user();
         $this->render('account/profile', [
-            'title' => 'El meu perfil', 'categories' => User::categories((int) $u['id']),
+            'title' => 'El meu perfil', 'teams' => User::teams((int) $u['id']),
         ]);
     }
 

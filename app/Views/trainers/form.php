@@ -13,11 +13,11 @@
         <label class="check"><input type="checkbox" name="is_active" value="1"<?= checked(old('is_active', '1') === '1' || old('is_active') === 1) ?>> Compte actiu</label>
     </section>
     <section class="card">
-        <fieldset><legend>Categories assignades</legend>
-            <?php if (field_error('category_ids')): ?><p class="field-error"><?= e(field_error('category_ids')) ?></p><?php endif; ?>
+        <fieldset><legend>Equips assignats</legend>
+            <?php if (field_error('team_ids')): ?><p class="field-error"><?= e(field_error('team_ids')) ?></p><?php endif; ?>
             <div class="checks">
-            <?php foreach ($categories as $c): ?>
-                <label class="check"><input type="checkbox" name="category_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('category_ids', $c['id'])) ?>> <?= e($c['name']) ?><?= (int) $c['is_active'] ? '' : ' (inactiva)' ?></label>
+            <?php foreach ($teams as $c): ?>
+                <label class="check"><input type="checkbox" name="team_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('team_ids', $c['id'])) ?>> <?= e($c['name']) ?><?= (int) $c['is_active'] ? '' : ' (inactiu)' ?></label>
             <?php endforeach; ?>
             </div>
         </fieldset>

@@ -23,5 +23,9 @@
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "suggest": {
+        "ext-zip": "Necessari per importar jugadors des d'un fitxer .xlsx (sense ella, es poden importar com a CSV)",
+        "ext-gd": "Per generar les icones de la PWA a partir del logotip"
     }
 }

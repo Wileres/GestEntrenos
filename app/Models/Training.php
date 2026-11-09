@@ -9,9 +9,9 @@ use App\Helpers\Paginator;
 
 final class Training
 {
-    /** Condició SQL que limita els entrenaments publicats als equips (categories) d'un entrenador. */
+    /** Condició SQL que limita els entrenaments publicats als equips d'un entrenador. */
     private const VISIBLE_TO_TRAINER = "t.status = 'published' AND
-        EXISTS (SELECT 1 FROM training_categories tc JOIN user_categories uc ON uc.category_id = tc.category_id WHERE tc.training_id = t.id AND uc.user_id = :uid1)";
+        EXISTS (SELECT 1 FROM training_teams tc JOIN user_teams uc ON uc.team_id = tc.team_id WHERE tc.training_id = t.id AND uc.user_id = :uid1)";
 
     public static function find(int $id): ?array
     {
@@ -43,9 +43,9 @@ final class Training
         } elseif (($f['when'] ?? 'upcoming') === 'upcoming') {
             $where[] = 't.session_date >= CURDATE()';
         }
-        if ((int) ($f['category'] ?? 0) > 0) {
-            $where[] = 'EXISTS (SELECT 1 FROM training_categories x WHERE x.training_id = t.id AND x.category_id = :cat)';
-            $params['cat'] = (int) $f['category'];
+        if ((int) ($f['team'] ?? 0) > 0) {
+            $where[] = 'EXISTS (SELECT 1 FROM training_teams x WHERE x.training_id = t.id AND x.team_id = :cat)';
+            $params['cat'] = (int) $f['team'];
         }
         $w = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         $total = (int) Db::value("SELECT COUNT(*) FROM training_sessions t $w", $params);
@@ -53,7 +53,7 @@ final class Training
         $order = ($f['when'] ?? 'upcoming') === 'upcoming' ? 'ASC' : 'DESC';
         $rows = Db::all(
             "SELECT t.id, t.title, t.session_date, t.start_time, t.duration_minutes, t.status, t.season,
-                    (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order SEPARATOR ', ') FROM training_categories tc JOIN categories c ON c.id = tc.category_id WHERE tc.training_id = t.id) AS categories
+                    (SELECT GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') FROM training_teams tc JOIN teams c ON c.id = tc.team_id WHERE tc.training_id = t.id) AS teams
              FROM training_sessions t $w ORDER BY t.session_date $order, t.start_time $order LIMIT {$pg->perPage} OFFSET {$pg->offset}",
             $params
         );
@@ -71,14 +71,14 @@ final class Training
         return Db::all("SELECT t.id, t.title, t.session_date, t.start_time, t.status FROM training_sessions t WHERE $w ORDER BY t.session_date, t.start_time LIMIT $limit", $params);
     }
 
-    /** Entrenaments publicats d'un equip (categoria), ordenats per data. */
-    public static function publishedForCategory(int $categoryId): array
+    /** Entrenaments publicats d'un equip, ordenats per data. */
+    public static function publishedForTeam(int $teamId): array
     {
         return Db::all(
             "SELECT t.id, t.title, t.session_date, t.start_time, t.duration_minutes, t.status
-             FROM training_sessions t JOIN training_categories tc ON tc.training_id = t.id
-             WHERE tc.category_id = ? AND t.status = 'published' ORDER BY t.session_date, t.start_time",
-            [$categoryId]
+             FROM training_sessions t JOIN training_teams tc ON tc.training_id = t.id
+             WHERE tc.team_id = ? AND t.status = 'published' ORDER BY t.session_date, t.start_time",
+            [$teamId]
         );
     }
 
@@ -87,9 +87,9 @@ final class Training
         return Db::all('SELECT id, title, session_date, start_time, status FROM training_sessions ORDER BY id DESC LIMIT ' . $limit);
     }
 
-    public static function categories(int $id): array
+    public static function teams(int $id): array
     {
-        return Db::all('SELECT c.id, c.name FROM categories c JOIN training_categories tc ON tc.category_id = c.id WHERE tc.training_id = ? ORDER BY c.sort_order', [$id]);
+        return Db::all('SELECT c.id, c.name FROM teams c JOIN training_teams tc ON tc.team_id = c.id WHERE tc.training_id = ? ORDER BY c.name', [$id]);
     }
 
     public static function exercises(int $id): array
@@ -117,7 +117,7 @@ final class Training
     }
 
     /**
-     * @param array{categories:int[],exercises:array<int,array{exercise_id:int,duration:?int,notes:string}>} $rel
+     * @param array{teams:int[],exercises:array<int,array{exercise_id:int,duration:?int,notes:string}>} $rel
      */
     public static function save(?int $id, array $d, array $rel, int $userId): int
     {
@@ -133,10 +133,10 @@ final class Training
             } else {
                 Db::update('training_sessions', $data, 'id = ?', [$id]);
             }
-            Db::run('DELETE FROM training_categories WHERE training_id = ?', [$id]);
+            Db::run('DELETE FROM training_teams WHERE training_id = ?', [$id]);
             Db::run('DELETE FROM training_exercises WHERE training_id = ?', [$id]);
-            foreach ($rel['categories'] as $c) {
-                Db::insert('training_categories', ['training_id' => $id, 'category_id' => $c]);
+            foreach ($rel['teams'] as $c) {
+                Db::insert('training_teams', ['training_id' => $id, 'team_id' => $c]);
             }
             foreach (array_values($rel['exercises']) as $pos => $ex) {
                 Db::insert('training_exercises', [

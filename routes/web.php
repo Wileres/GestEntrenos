@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 use App\Controllers\AdminController;
 use App\Controllers\AdminUserController;
+use App\Controllers\AttendanceController;
+use App\Controllers\AttendanceReportController;
 use App\Controllers\AuthController;
+use App\Controllers\CalendarController;
 use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\ExerciseController;
 use App\Controllers\FileController;
 use App\Controllers\IdentityController;
 use App\Controllers\NotificationController;
+use App\Controllers\PlayerController;
 use App\Controllers\PwaController;
 use App\Controllers\TeamController;
 use App\Controllers\TrainerController;
@@ -47,7 +51,41 @@ return static function (Router $r): void {
     $r->post('/notificacions/preferencies', [NotificationController::class, 'preferences'], ['auth']);
     $r->post('/push/subscriure', [NotificationController::class, 'subscribe'], ['auth']);
     $r->post('/push/cancela', [NotificationController::class, 'unsubscribe'], ['auth']);
+    // Equips
+    $r->get('/equips', [TeamController::class, 'index'], ['admin']);
+    $r->get('/equips/nou', [TeamController::class, 'create'], ['admin']);
+    $r->post('/equips', [TeamController::class, 'store'], ['admin']);
     $r->get('/equips/{id}', [TeamController::class, 'show'], ['auth']);
+    $r->get('/equips/{id}/editar', [TeamController::class, 'edit'], ['admin']);
+    $r->post('/equips/{id}', [TeamController::class, 'update'], ['admin']);
+    $r->post('/equips/{id}/eliminar', [TeamController::class, 'delete'], ['admin']);
+
+    // Jugadors
+    $r->get('/jugadors', [PlayerController::class, 'index'], ['admin']);
+    $r->get('/jugadors/nou', [PlayerController::class, 'create'], ['admin']);
+    $r->get('/jugadors/importa', [PlayerController::class, 'importForm'], ['admin']);
+    $r->post('/jugadors/importa', [PlayerController::class, 'importPreview'], ['admin']);
+    $r->post('/jugadors/importa/confirma', [PlayerController::class, 'importConfirm'], ['admin']);
+    $r->get('/jugadors/plantilla', [PlayerController::class, 'template'], ['admin']);
+    $r->post('/jugadors', [PlayerController::class, 'store'], ['admin']);
+    $r->get('/jugadors/{id}/editar', [PlayerController::class, 'edit'], ['admin']);
+    $r->post('/jugadors/{id}', [PlayerController::class, 'update'], ['admin']);
+    $r->post('/jugadors/{id}/eliminar', [PlayerController::class, 'delete'], ['admin']);
+
+    // Assistència
+    $r->get('/assistencia', [AttendanceController::class, 'index'], ['auth']);
+    $r->get('/assistencia/resum', [AttendanceReportController::class, 'week'], ['admin']);
+    $r->get('/assistencia/equip/{id}', [AttendanceReportController::class, 'team'], ['admin']);
+    $r->post('/assistencia/extra', [AttendanceController::class, 'addExtra'], ['admin']);
+    $r->get('/assistencia/{id}', [AttendanceController::class, 'show'], ['auth']);
+    $r->post('/assistencia/{id}', [AttendanceController::class, 'save'], ['auth']);
+    $r->post('/assistencia/{id}/cancela', [AttendanceController::class, 'cancel'], ['admin']);
+
+    // Calendari i festius
+    $r->get('/calendari', [CalendarController::class, 'index'], ['admin']);
+    $r->post('/calendari/festius', [CalendarController::class, 'holidayAdd'], ['admin']);
+    $r->post('/calendari/festius/{id}/elimina', [CalendarController::class, 'holidayDelete'], ['admin']);
+
     $r->get('/exercicis', [ExerciseController::class, 'index'], ['auth']);
     $r->get('/exercicis/nou', [ExerciseController::class, 'create'], ['admin']);
     $r->post('/exercicis', [ExerciseController::class, 'store'], ['admin']);

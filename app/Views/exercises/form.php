@@ -13,9 +13,9 @@
             <?= input_field('players', 'Nombre de jugadors', ['type' => 'number', 'attrs' => ['min' => 1, 'max' => 200]]) ?>
         </div>
         <fieldset><legend>Equips <span class="req" aria-hidden="true">*</span></legend>
-            <?php if (field_error('extra_categories')): ?><p class="field-error"><?= e(field_error('extra_categories')) ?></p><?php endif; ?>
-            <div class="checks"><?php foreach ($categories as $c): ?>
-                <label class="check"><input type="checkbox" name="extra_categories[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('extra_categories', $c['id'])) ?>> <?= e($c['name']) ?></label>
+            <?php if (field_error('team_ids')): ?><p class="field-error"><?= e(field_error('team_ids')) ?></p><?php endif; ?>
+            <div class="checks"><?php foreach ($teams as $c): ?>
+                <label class="check"><input type="checkbox" name="team_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('team_ids', $c['id'])) ?>> <?= e($c['name']) ?></label>
             <?php endforeach; ?></div>
         </fieldset>
         <label class="check"><input type="checkbox" name="is_active" value="1"<?= checked((string) old('is_active', '1') === '1') ?>> Exercici actiu (visible per als entrenadors)</label>

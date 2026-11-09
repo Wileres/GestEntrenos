@@ -15,6 +15,8 @@ final class DashboardController extends Controller
     public function index(Request $r, array $p): void
     {
         $u = $this->user();
+        \App\Services\AttendanceService::ensureUpcoming();
+        $today = date('Y-m-d');
         if ($u['role'] === 'admin') {
             $dismissed = \App\Services\SettingsService::get('mail_alert_dismissed_at');
             $since = max(date('Y-m-d H:i:s', time() - 7 * 86400), $dismissed);
@@ -22,9 +24,12 @@ final class DashboardController extends Controller
                 'title' => 'Panell principal',
                 'stats' => [
                     'Entrenadors actius' => [User::countActiveTrainers(), '/entrenadors'],
-                    'Categories' => [(int) Db::value('SELECT COUNT(*) FROM categories'), '/categories'],
+                    'Equips' => [(int) Db::value('SELECT COUNT(*) FROM teams WHERE is_active = 1'), '/equips'],
+                    'Jugadors' => [\App\Models\Player::countActive(), '/jugadors'],
+                    'Faltes aquesta setmana' => [\App\Models\Attendance::absencesThisWeek(), '/assistencia/resum'],
                     'Exercicis' => [(int) Db::value('SELECT COUNT(*) FROM exercises'), '/exercicis'],
                 ],
+                'todaySessions' => \App\Models\Attendance::sessions($today, $today),
                 'upcoming' => Training::upcomingFor($u),
                 'latest' => Training::latest(),
                 'trainers' => User::latestTrainers(),
@@ -39,7 +44,8 @@ final class DashboardController extends Controller
         $this->render('dashboard/trainer', [
             'title' => 'Panell principal',
             'upcoming' => Training::upcomingFor($u),
-            'categories' => User::categories((int) $u['id']),
+            'teams' => User::teams((int) $u['id']),
+            'todaySessions' => \App\Models\Attendance::sessions($today, $today, (int) $u['id']),
             'exercises' => Exercise::latest(),
             'notifications' => \App\Services\Notifier::recent((int) $u['id'], 5),
         ]);

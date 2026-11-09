@@ -25,6 +25,12 @@ final class User
         );
     }
 
+    /** Tots els entrenadors (per assignar-los a equips). */
+    public static function allTrainers(): array
+    {
+        return Db::all('SELECT u.id, u.first_name, u.last_name, u.is_active ' . self::TRAINER_FROM . ' ORDER BY u.first_name, u.last_name');
+    }
+
     public static function searchTrainers(string $q, string $status, int $page): array
     {
         $where = ['1=1'];
@@ -43,7 +49,7 @@ final class User
         $pg = Paginator::make($total, $page);
         $rows = Db::all(
             'SELECT u.id, u.first_name, u.last_name, u.email, u.is_active, u.password_hash IS NOT NULL AS has_password,
-                    (SELECT COUNT(*) FROM user_categories WHERE user_id = u.id) AS categories_count '
+                    (SELECT COUNT(*) FROM user_teams WHERE user_id = u.id) AS teams_count '
             . self::TRAINER_FROM . " WHERE $w ORDER BY u.last_name, u.first_name LIMIT {$pg->perPage} OFFSET {$pg->offset}",
             $params
         );
@@ -82,22 +88,22 @@ final class User
         return $id;
     }
 
-    public static function categoryIds(int $userId): array
+    public static function teamIds(int $userId): array
     {
-        return array_map('intval', Db::column('SELECT category_id FROM user_categories WHERE user_id = ?', [$userId]));
+        return array_map('intval', Db::column('SELECT team_id FROM user_teams WHERE user_id = ?', [$userId]));
     }
 
-    public static function categories(int $userId): array
+    public static function teams(int $userId): array
     {
-        return Db::all('SELECT c.id, c.name FROM categories c JOIN user_categories uc ON uc.category_id = c.id WHERE uc.user_id = ? ORDER BY c.sort_order', [$userId]);
+        return Db::all('SELECT c.id, c.name FROM teams c JOIN user_teams uc ON uc.team_id = c.id WHERE uc.user_id = ? ORDER BY c.name', [$userId]);
     }
 
-    public static function syncRelations(int $userId, array $categoryIds): void
+    public static function syncRelations(int $userId, array $teamIds): void
     {
-        Db::transaction(function () use ($userId, $categoryIds) {
-            Db::run('DELETE FROM user_categories WHERE user_id = ?', [$userId]);
-            foreach ($categoryIds as $c) {
-                Db::insert('user_categories', ['user_id' => $userId, 'category_id' => $c]);
+        Db::transaction(function () use ($userId, $teamIds) {
+            Db::run('DELETE FROM user_teams WHERE user_id = ?', [$userId]);
+            foreach ($teamIds as $c) {
+                Db::insert('user_teams', ['user_id' => $userId, 'team_id' => $c]);
             }
         });
     }
@@ -129,7 +135,7 @@ final class User
     public static function deleteTrainer(int $id): void
     {
         Db::transaction(function () use ($id) {
-            Db::run('DELETE FROM user_categories WHERE user_id = ?', [$id]);
+            Db::run('DELETE FROM user_teams WHERE user_id = ?', [$id]);
             Db::run('DELETE FROM user_roles WHERE user_id = ?', [$id]);
             Db::run('DELETE FROM users WHERE id = ?', [$id]);
         });

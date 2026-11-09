@@ -1,7 +1,7 @@
 <?php
 $names = []; foreach ($catalog as $c) { $names[(int) $c['id']] = $c['name']; }
 foreach ($rows as $r) { if (!isset($names[$r['exercise_id']])) { $names[$r['exercise_id']] = \App\Helpers\Db::value('SELECT name FROM exercises WHERE id = ?', [$r['exercise_id']]) ?? '?'; } }
-$catalogOpts = []; foreach ($catalog as $c) { $catalogOpts[$c['id']] = $c['name'] . ' (' . $c['category_name'] . ')'; }
+$catalogOpts = []; foreach ($catalog as $c) { $catalogOpts[$c['id']] = $c['name'] . ' (' . $c['team_name'] . ')'; }
 $last = count($rows) - 1;
 ?>
 <nav class="breadcrumb"><a href="<?= e(url('/entrenaments')) ?>">Entrenaments</a> / <?= e($title) ?></nav>
@@ -21,9 +21,9 @@ $last = count($rows) - 1;
         <?= input_field('notes', 'Observacions', ['type' => 'textarea', 'rows' => 3]) ?>
     </section>
     <section class="card">
-        <?php if (field_error('category_ids')): ?><p class="field-error"><?= e(field_error('category_ids')) ?></p><?php endif; ?>
-        <fieldset><legend>Equips</legend><div class="checks"><?php foreach ($categories as $c): ?>
-            <label class="check"><input type="checkbox" name="category_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('category_ids', $c['id'])) ?>> <?= e($c['name']) ?></label>
+        <?php if (field_error('team_ids')): ?><p class="field-error"><?= e(field_error('team_ids')) ?></p><?php endif; ?>
+        <fieldset><legend>Equips</legend><div class="checks"><?php foreach ($teams as $c): ?>
+            <label class="check"><input type="checkbox" name="team_ids[]" value="<?= (int) $c['id'] ?>"<?= checked(in_old('team_ids', $c['id'])) ?>> <?= e($c['name']) ?></label>
         <?php endforeach; ?></div></fieldset>
     </section>
     <section class="card" id="exercicis">

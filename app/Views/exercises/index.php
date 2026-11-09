@@ -1,9 +1,9 @@
-<?php $catOpts = []; foreach ($categories as $c) { $catOpts[$c['id']] = $c['name']; } ?>
+<?php $catOpts = []; foreach ($teams as $c) { $catOpts[$c['id']] = $c['name']; } ?>
 <div class="page-head"><h1>Exercicis</h1>
     <?php if (is_admin()): ?><a class="btn btn-primary" href="<?= e(url('/exercicis/nou')) ?>">Nou exercici</a><?php endif; ?></div>
 <form method="get" class="filters card" role="search">
     <?= input_field('name', 'Nom', ['value' => $filters['name'], 'attrs' => ['maxlength' => 100]]) ?>
-    <?= select_field('category', 'Equip', $catOpts, ['value' => $filters['category'], 'blank' => 'Totes']) ?>
+    <?= select_field('team', 'Equip', $catOpts, ['value' => $filters['team'], 'blank' => 'Totes']) ?>
     <?= input_field('objective', 'Objectiu', ['value' => $filters['objective'], 'attrs' => ['maxlength' => 100]]) ?>
     <?= input_field('material', 'Material', ['value' => $filters['material'], 'attrs' => ['maxlength' => 100]]) ?>
     <?= select_field('difficulty', 'Dificultat', \App\Helpers\Labels::DIFFICULTY, ['value' => $filters['difficulty'], 'blank' => 'Totes']) ?>
@@ -17,7 +17,7 @@
     <?php foreach ($exercises as $x): ?>
         <tr>
             <td data-label="Nom"><a href="<?= e(url('/exercicis/' . $x['id'])) ?>"><?= e($x['name']) ?></a><?= (int) $x['is_active'] ? '' : ' <span class="badge badge-neutral">Inactiu</span>' ?></td>
-            <td data-label="Equips"><?= e($x['category_name']) ?></td>
+            <td data-label="Equips"><?= e($x['team_name']) ?></td>
             <td data-label="Objectiu"><?= e($x['objective']) ?></td>
             <td data-label="Durada"><?= $x['duration_minutes'] ? (int) $x['duration_minutes'] . ' min' : '' ?></td>
             <td data-label="Jugadors"><?= e($x['players']) ?></td>

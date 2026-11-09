@@ -14,9 +14,9 @@
     </section>
     <?php if ($user['role'] !== 'admin'): ?>
     <section class="card">
-        <h2>Les meves categories</h2>
-        <?php if ($categories): ?><ul class="tags"><?php foreach ($categories as $c): ?><li><?= e($c['name']) ?></li><?php endforeach; ?></ul>
-        <?php else: ?><p class="muted">Encara no tens categories assignades.</p><?php endif; ?>
+        <h2>Els meus equips</h2>
+        <?php if ($teams): ?><ul class="tags"><?php foreach ($teams as $c): ?><li><?= e($c['name']) ?></li><?php endforeach; ?></ul>
+        <?php else: ?><p class="muted">Encara no tens equips assignats.</p><?php endif; ?>
     </section>
     <?php endif; ?>
 </div>

@@ -7,7 +7,7 @@ namespace App\Controllers;
 use App\Helpers\Labels;
 use App\Helpers\Request;
 use App\Helpers\Response;
-use App\Models\Category;
+use App\Models\Team;
 use App\Models\Exercise;
 use App\Models\Training;
 use App\Services\AuditService;
@@ -27,9 +27,9 @@ final class TrainingController extends Controller
     public function index(Request $r, array $p): void
     {
         $u = $this->user();
-        $f = ['when' => $r->q('when') ?: 'upcoming', 'status' => $r->q('status'), 'category' => $r->q('category'), 'page' => $r->q('page')];
+        $f = ['when' => $r->q('when') ?: 'upcoming', 'status' => $r->q('status'), 'team' => $r->q('team'), 'page' => $r->q('page')];
         [$rows, $pg] = Training::search($u, $f, (int) $f['page']);
-        $this->render('trainings/index', ['title' => 'Entrenaments', 'trainings' => $rows, 'pager' => $pg, 'filters' => $f, 'categories' => Category::all()]);
+        $this->render('trainings/index', ['title' => 'Entrenaments', 'trainings' => $rows, 'pager' => $pg, 'filters' => $f, 'teams' => Team::all()]);
     }
 
     public function show(Request $r, array $p): void
@@ -39,7 +39,7 @@ final class TrainingController extends Controller
         $exercises = Training::exercises($id);
         $this->render('trainings/show', [
             'exerciseFiles' => Exercise::filesByExercise(array_column($exercises, 'exercise_id')),
-            'title' => $t['title'], 't' => $t, 'categories' => Training::categories($id),
+            'title' => $t['title'], 't' => $t, 'teams' => Training::teams($id),
             'exercises' => $exercises, 'files' => Training::files($id),
             'transitions' => self::TRANSITIONS[$t['status']],
         ]);
@@ -49,7 +49,7 @@ final class TrainingController extends Controller
     {
         return [
             'title' => $t ? 'Edita l\'entrenament' : 'Nou entrenament', 'training' => $t,
-            'categories' => Category::all(), 'catalog' => Exercise::catalog(),
+            'teams' => Team::all(), 'catalog' => Exercise::catalog(),
             'rows' => $rows, 'files' => $t ? Training::files((int) $t['id']) : [],
         ];
     }
@@ -67,7 +67,7 @@ final class TrainingController extends Controller
         $t = Training::find($id) ?? Response::notFound();
         $rows = array_map(fn ($e) => ['exercise_id' => (int) $e['exercise_id'], 'duration' => $e['duration_minutes'], 'notes' => (string) $e['notes']], Training::exercises($id));
         $this->render('trainings/form', $this->formData($t, $rows) + ['old' => $t + [
-            'category_ids' => array_column(Training::categories($id), 'id'),
+            'team_ids' => array_column(Training::teams($id), 'id'),
         ]]);
     }
 
@@ -132,8 +132,8 @@ final class TrainingController extends Controller
         foreach (['title', 'description', 'session_date', 'start_time', 'duration_minutes', 'season', 'notes'] as $k) {
             $d[$k] = $r->str($k);
         }
-        $catIds = $this->onlyKnown($r->intList('category_ids'), array_column(Category::all(), 'id'));
-        $old = $d + ['category_ids' => $catIds, 'notify_changes' => $r->input('notify_changes') ? '1' : ''];
+        $catIds = $this->onlyKnown($r->intList('team_ids'), array_column(Team::all(), 'id'));
+        $old = $d + ['team_ids' => $catIds, 'notify_changes' => $r->input('notify_changes') ? '1' : ''];
 
         if ($action !== 'save') {
             $this->render('trainings/form', $this->formData($existing, $rows) + ['old' => $old]);
@@ -144,7 +144,7 @@ final class TrainingController extends Controller
             ->date('session_date', 'Data')->time('start_time', 'Hora d\'inici')->intRange('duration_minutes', 'Durada', 1, 600, true)
             ->season('season', 'Temporada')->maxLen('notes', 'Observacions', 20000);
         if (!$catIds) {
-            $v->error('category_ids', 'Cal seleccionar almenys un equip.');
+            $v->error('team_ids', 'Cal seleccionar almenys un equip.');
         }
         $clean = [];
         foreach ($rows as $i => $row) {
@@ -177,7 +177,7 @@ final class TrainingController extends Controller
         }
 
         $isNew = $id === null;
-        $id = Training::save($id, $d, ['categories' => $catIds, 'exercises' => $clean], (int) $this->user()['id']);
+        $id = Training::save($id, $d, ['teams' => $catIds, 'exercises' => $clean], (int) $this->user()['id']);
         foreach ($valid as [$f, $checked]) {
             Training::addFile($id, FileService::store($f, $checked, 'trainings'));
         }
@@ -208,7 +208,7 @@ final class TrainingController extends Controller
         if (!in_array($new, self::TRANSITIONS[$t['status']], true)) {
             $this->done('Aquest canvi d\'estat no és possible.', '/entrenaments/' . $id, 'error');
         }
-        if ($new === 'published' && !Training::categories($id)) {
+        if ($new === 'published' && !Training::teams($id)) {
             $this->done('Cal assignar almenys un equip abans de publicar.', '/entrenaments/' . $id, 'error');
         }
         Training::setStatus($id, $new);

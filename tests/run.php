@@ -146,6 +146,8 @@ function resetDatabase(): void
     }
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
     Installer::runSqlFile($pdo, BASE_PATH . '/database/seeds/001_initial_data.sql');
+    // Un equip per categoria (mateix id i nom), com fa la migració 004 en instal·lacions existents.
+    $pdo->exec('INSERT IGNORE INTO teams (id, category_id, name, is_active, created_at, updated_at) SELECT id, id, name, is_active, NOW(), NOW() FROM categories');
     Installer::createAdmin($pdo, 'Gestor', ADMIN_PASS);
     foreach (glob(BASE_PATH . '/storage/uploads/{exercises,trainings}/*', GLOB_BRACE) ?: [] as $f) {
         @unlink($f);
@@ -271,10 +273,10 @@ $catSenior = (int) Db::value("SELECT id FROM categories WHERE name = 'Sènior'")
 $r = $admin->post("/categories/$catSenior/eliminar", [], '/categories');
 t('Es pot eliminar una categoria sense relacions', (int) Db::value('SELECT COUNT(*) FROM categories WHERE id = ?', [$catSenior]) === 0);
 
-$r = $admin->post('/entrenadors', ['first_name' => 'Anna', 'last_name' => 'Puig', 'email' => 'anna@prova.cat', 'is_active' => 1, 'category_ids' => [$catCadet]], '/entrenadors/nou');
+$r = $admin->post('/entrenadors', ['first_name' => 'Anna', 'last_name' => 'Puig', 'email' => 'anna@prova.cat', 'is_active' => 1, 'team_ids' => [$catCadet]], '/entrenadors/nou');
 t('Entrenador creat', $r['status'] === 303);
 $r = $admin->post("/categories/$catCadet/eliminar", [], '/categories');
-t('No es pot eliminar una categoria amb entrenadors assignats', (int) Db::value('SELECT COUNT(*) FROM categories WHERE id = ?', [$catCadet]) === 1);
+t('No es pot eliminar una categoria amb equips', (int) Db::value('SELECT COUNT(*) FROM categories WHERE id = ?', [$catCadet]) === 1);
 $r = $admin->post('/entrenadors', ['first_name' => 'Altra', 'last_name' => 'Puig', 'email' => 'ANNA@prova.cat'], '/entrenadors/nou');
 t('Correu d\'entrenador únic (sense distingir majúscules)', $r['status'] === 422);
 $r = $admin->post('/entrenadors', ['first_name' => '', 'last_name' => 'X', 'email' => 'mal'], '/entrenadors/nou');
@@ -329,11 +331,11 @@ foreach (['/entrenadors', '/entrenadors/nou', '/categories', '/categories', '/ad
 }
 $r = $anna->post('/categories', ['name' => 'Hackers', 'sort_order' => 1], '/exercicis');
 t('Entrenador no pot crear categories (POST amb CSRF vàlid)', $r['status'] === 403 && (int) Db::value("SELECT COUNT(*) FROM categories WHERE name = 'Hackers'") === 0);
-$r = $anna->post("/entrenadors/$annaId", ['first_name' => 'Anna', 'last_name' => 'Puig', 'email' => 'anna@prova.cat', 'category_ids' => [$catInfantil]], '/exercicis');
+$r = $anna->post("/entrenadors/$annaId", ['first_name' => 'Anna', 'last_name' => 'Puig', 'email' => 'anna@prova.cat', 'team_ids' => [$catInfantil]], '/exercicis');
 t('Entrenador no pot assignar-se categories', $r['status'] === 403 && User_categories($annaId) === [$catCadet]);
 function User_categories(int $id): array
 {
-    return array_map('intval', Db::column('SELECT category_id FROM user_categories WHERE user_id = ?', [$id]));
+    return array_map('intval', Db::column('SELECT team_id FROM user_teams WHERE user_id = ?', [$id]));
 }
 t('Entrenador no pot crear entrenaments', $anna->post('/entrenaments', ['title' => 'X'], '/exercicis')['status'] === 403);
 t('Administrador accedeix a l\'administració', $admin->get('/admin/registre')['status'] === 200);
@@ -348,7 +350,7 @@ file_put_contents($dblPath, $pdf);
 $csrf = $admin->csrf('/exercicis/nou');
 $r = $admin->request('POST', '/exercicis', [
     '_csrf' => $csrf, 'name' => 'Rondo 4x2', 'description' => 'Rondo de passades', 'objective' => 'Passada', 'material' => 'Cons',
-    'players' => 8, 'duration_minutes' => 15, 'difficulty' => 'easy', 'is_active' => 1, 'extra_categories' => [$catBenjami, $catInfantil],
+    'players' => 8, 'duration_minutes' => 15, 'difficulty' => 'easy', 'is_active' => 1, 'team_ids' => [$catBenjami, $catInfantil],
     'files' => [new CURLFile($pdfPath, 'application/pdf', 'sessio.pdf')],
 ]);
 t('Exercici creat amb PDF adjunt', $r['status'] === 303);
@@ -356,14 +358,14 @@ $exBenjami = (int) Db::value("SELECT id FROM exercises WHERE name = 'Rondo 4x2'"
 $fileEx = (int) Db::value('SELECT id FROM exercise_files WHERE exercise_id = ?', [$exBenjami]);
 t('El fitxer es desa amb nom aleatori sense extensió fora de public', $fileEx > 0 && preg_match('/^[a-f0-9]{40}$/', (string) Db::value('SELECT stored_name FROM exercise_files WHERE id = ?', [$fileEx])) === 1
     && is_file(BASE_PATH . '/storage/uploads/exercises/' . Db::value('SELECT stored_name FROM exercise_files WHERE id = ?', [$fileEx])));
-$r = $admin->request('POST', '/exercicis', ['_csrf' => $csrf, 'name' => 'Maliciós', 'description' => 'x', 'extra_categories' => [$catCadet], 'is_active' => 1,
+$r = $admin->request('POST', '/exercicis', ['_csrf' => $csrf, 'name' => 'Maliciós', 'description' => 'x', 'team_ids' => [$catCadet], 'is_active' => 1,
     'files' => [new CURLFile($evilPath, 'application/pdf', 'hack.pdf')]]);
 t('Pujada d\'un PHP disfressat de PDF rebutjada', $r['status'] === 422 && (int) Db::value("SELECT COUNT(*) FROM exercises WHERE name = 'Maliciós'") === 0);
-$r = $admin->request('POST', '/exercicis', ['_csrf' => $csrf, 'name' => 'Maliciós', 'description' => 'x', 'extra_categories' => [$catCadet], 'is_active' => 1,
+$r = $admin->request('POST', '/exercicis', ['_csrf' => $csrf, 'name' => 'Maliciós', 'description' => 'x', 'team_ids' => [$catCadet], 'is_active' => 1,
     'files' => [new CURLFile($dblPath, 'application/pdf', 'hack.php.pdf')]]);
 t('Pujada amb doble extensió rebutjada', $r['status'] === 422);
-$admin->post('/exercicis', ['name' => '<script>alert(1)</script>', 'description' => '<img src=x onerror=alert(1)>', 'extra_categories' => [$catCadet], 'is_active' => 1], '/exercicis/nou');
-$admin->post('/exercicis', ['name' => 'Inactiu secret', 'description' => 'x', 'extra_categories' => [$catCadet]], '/exercicis/nou');
+$admin->post('/exercicis', ['name' => '<script>alert(1)</script>', 'description' => '<img src=x onerror=alert(1)>', 'team_ids' => [$catCadet], 'is_active' => 1], '/exercicis/nou');
+$admin->post('/exercicis', ['name' => 'Inactiu secret', 'description' => 'x', 'team_ids' => [$catCadet]], '/exercicis/nou');
 $exXss = (int) Db::value("SELECT id FROM exercises WHERE name LIKE '<script>%'");
 $exInactive = (int) Db::value("SELECT id FROM exercises WHERE name = 'Inactiu secret'");
 t('Exercici inactiu desat com a inactiu', (int) Db::value('SELECT is_active FROM exercises WHERE id = ?', [$exInactive]) === 0);
@@ -377,7 +379,7 @@ $r = $anna->get("/exercicis/$exXss");
 t('XSS: la descripció s\'escapa al detall', !str_contains($r['body'], '<img src=x') && str_contains($r['body'], '&lt;img'));
 $r = $anna->get('/exercicis?name=' . urlencode("' OR 1=1 -- "));
 t('Injecció SQL al filtre no retorna dades', $r['status'] === 200 && !str_contains($r['body'], 'Rondo 4x2'));
-$r = $anna->get('/exercicis?category=' . $catInfantil);
+$r = $anna->get('/exercicis?team=' . $catInfantil);
 t('Filtre per categoria addicional funciona', str_contains($r['body'], 'Rondo 4x2'));
 $r = $anna->get('/exercicis?players=8&difficulty=easy&material=Cons&objective=Passada');
 t('Filtres combinats (jugadors, dificultat, material, objectiu)', str_contains($r['body'], 'Rondo 4x2'));
@@ -388,7 +390,7 @@ section('Entrenaments: restricció per categoria/equip');
 $mkTraining = function (string $title, array $cats, array $extra = []) use ($admin): int {
     $admin->post('/entrenaments', array_merge([
         'title' => $title, 'session_date' => date('Y-m-d', time() + 86400 * 3), 'start_time' => '18:30', 'duration_minutes' => 90,
-        'season' => '2026-2027', 'description' => 'Descripció', 'category_ids' => $cats, 'action' => 'save',
+        'season' => '2026-2027', 'description' => 'Descripció', 'team_ids' => $cats, 'action' => 'save',
         'ex' => [['exercise_id' => 0]],
     ], $extra), '/entrenaments/nou');
     return (int) Db::value('SELECT id FROM training_sessions WHERE title = ?', [$title]);
@@ -402,27 +404,27 @@ t('Validació d\'entrenament', $r['status'] === 422 && str_contains($r['body'], 
 
 // Exercicis dins de l'entrenament: afegir, ordenar, treure (sense JavaScript)
 $r = $admin->request('POST', "/entrenaments/$trOwn", ['_csrf' => $admin->csrf('/entrenaments/nou'), 'title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 3),
-    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'add', 'add_exercise' => $exBenjami]);
+    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'add', 'add_exercise' => $exBenjami]);
 t('Afegir exercici mostra el formulari actualitzat sense desar', $r['status'] === 200 && str_contains($r['body'], 'Rondo 4x2'));
 $rows = [['exercise_id' => $exBenjami, 'duration' => 10, 'notes' => 'Primer'], ['exercise_id' => $exXss, 'duration' => 20, 'notes' => 'Segon']];
 $admin->post("/entrenaments/$trOwn", ['title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 3), 'start_time' => '18:30', 'duration_minutes' => 90,
-    'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'save', 'ex' => $rows], '/entrenaments/nou');
+    'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'save', 'ex' => $rows], '/entrenaments/nou');
 t('Exercicis desats amb ordre', Db::column('SELECT exercise_id FROM training_exercises WHERE training_id = ? ORDER BY position', [$trOwn]) === [(string) $exBenjami, (string) $exXss]
     || array_map('intval', Db::column('SELECT exercise_id FROM training_exercises WHERE training_id = ? ORDER BY position', [$trOwn])) === [$exBenjami, $exXss]);
 $r = $admin->request('POST', "/entrenaments/$trOwn", ['_csrf' => $admin->csrf('/entrenaments/nou'), 'title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 3),
-    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'down:0', 'ex' => $rows]);
+    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'down:0', 'ex' => $rows]);
 preg_match_all('/name="ex\[(\d)\]\[exercise_id\]" value="(\d+)"/', $r['body'], $mm);
 t('Botó "Baixa" reordena els exercicis', array_map('intval', $mm[2]) === [$exXss, $exBenjami]);
 $r = $admin->request('POST', "/entrenaments/$trOwn", ['_csrf' => $admin->csrf('/entrenaments/nou'), 'title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 3),
-    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'remove:0', 'ex' => $rows]);
+    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'remove:0', 'ex' => $rows]);
 t('Treure un exercici de l\'entrenament no l\'esborra del catàleg', substr_count($r['body'], 'name="ex[') >= 1 && (int) Db::value('SELECT COUNT(*) FROM exercises WHERE id = ?', [$exBenjami]) === 1);
 
 // Fitxer adjunt a entrenaments
 $admin->request('POST', "/entrenaments/$trOther", ['_csrf' => $admin->csrf('/entrenaments/nou'), 'title' => 'Sessió Infantil', 'session_date' => date('Y-m-d', time() + 86400 * 3),
-    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'category_ids' => [$catInfantil], 'action' => 'save',
+    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'team_ids' => [$catInfantil], 'action' => 'save',
     'files' => [new CURLFile($pdfPath, 'application/pdf', 'pla-infantil.pdf')]]);
 $admin->request('POST', "/entrenaments/$trOwn", ['_csrf' => $admin->csrf('/entrenaments/nou'), 'title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 3),
-    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'save',
+    'start_time' => '18:30', 'duration_minutes' => 90, 'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'save',
     'files' => [new CURLFile($pdfPath, 'application/pdf', 'pla-cadet.pdf')]]);
 $fileOwn = (int) Db::value('SELECT id FROM training_files WHERE training_id = ?', [$trOwn]);
 $fileOther = (int) Db::value('SELECT id FROM training_files WHERE training_id = ?', [$trOther]);
@@ -464,7 +466,7 @@ $inactiu = (int) Db::insert('users', ['first_name' => 'Inactiu', 'last_name' => 
     'is_active' => 0, 'must_change_password' => 0, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
 Db::insert('user_roles', ['user_id' => $inactiu, 'role_id' => 2]);
 foreach ([$inactiu, $bernat] as $uid) {
-    Db::insert('user_categories', ['user_id' => $uid, 'category_id' => $catCadet]);
+    Db::insert('user_teams', ['user_id' => $uid, 'team_id' => $catCadet]);
 }
 $rec = NotificationService::recipients($trOwn);
 t('Destinataris sense duplicats (una sola fila per entrenador)', count($rec) === count(array_unique(array_column($rec, 'id'))) && count($rec) === 2);
@@ -497,7 +499,7 @@ MailService::$fake = function (array $m) use (&$sent): bool {
 };
 Db::run("UPDATE training_sessions SET status = 'published' WHERE id = ?", [$trOwn]);
 $admin->post("/entrenaments/$trOwn", ['title' => 'Sessió Cadet', 'session_date' => date('Y-m-d', time() + 86400 * 5), 'start_time' => '19:00', 'duration_minutes' => 90,
-    'season' => '2026-2027', 'category_ids' => [$catCadet], 'action' => 'save'], '/entrenaments/nou');
+    'season' => '2026-2027', 'team_ids' => [$catCadet], 'action' => 'save'], '/entrenaments/nou');
 MailService::$fake = null;
 t('Canvi de data/hora (servidor HTTP sense simulació: omès però registrat)', (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE type = 'training_updated'") >= 1);
 
@@ -566,14 +568,14 @@ Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$laiaId]);
 $admin->post("/administradors/$gestorId", ['first_name' => 'Gestor', 'last_name' => '', 'email' => 'gestor@prova.cat', 'is_active' => ''], '/administradors');
 t('L\'últim administrador actiu no es pot desactivar', (int) Db::value('SELECT is_active FROM users WHERE id = ?', [$gestorId]) === 1);
 
-$admin->post('/entrenadors', ['first_name' => 'Temp', 'last_name' => 'Esborrar', 'email' => 'temp@prova.cat', 'is_active' => 1, 'category_ids' => [$catCadet]], '/entrenadors/nou');
+$admin->post('/entrenadors', ['first_name' => 'Temp', 'last_name' => 'Esborrar', 'email' => 'temp@prova.cat', 'is_active' => 1, 'team_ids' => [$catCadet]], '/entrenadors/nou');
 $tempId = (int) Db::value("SELECT id FROM users WHERE email = 'temp@prova.cat'");
-t('Entrenador temporal creat amb categories i token', $tempId > 0 && (int) Db::value('SELECT COUNT(*) FROM user_categories WHERE user_id = ?', [$tempId]) === 1);
+t('Entrenador temporal creat amb categories i token', $tempId > 0 && (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE user_id = ?', [$tempId]) === 1);
 $r = $anna->post("/entrenadors/$tempId/eliminar", [], '/exercicis');
 t('Un entrenador no pot eliminar entrenadors', $r['status'] === 403 && (int) Db::value('SELECT COUNT(*) FROM users WHERE id = ?', [$tempId]) === 1);
 $r = $admin->post("/entrenadors/$tempId/eliminar", [], '/entrenadors');
 t('L\'administrador elimina un entrenador', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM users WHERE id = ?', [$tempId]) === 0);
-t('S\'eliminen també les relacions i els tokens', (int) Db::value('SELECT COUNT(*) FROM user_categories WHERE user_id = ?', [$tempId]) === 0
+t('S\'eliminen també les relacions i els tokens', (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE user_id = ?', [$tempId]) === 0
     && (int) Db::value('SELECT COUNT(*) FROM user_roles WHERE user_id = ?', [$tempId]) === 0 && (int) Db::value('SELECT COUNT(*) FROM activation_tokens WHERE user_id = ?', [$tempId]) === 0);
 t('L\'eliminació queda auditada', (int) Db::value("SELECT COUNT(*) FROM audit_logs WHERE action = 'trainer_deleted' AND entity_id = ?", [$tempId]) === 1);
 t('Eliminar un entrenador inexistent → 404', $admin->post("/entrenadors/$tempId/eliminar", [], '/entrenadors')['status'] === 404);
@@ -618,8 +620,8 @@ MailService::$fake = function (array $m) use (&$sent): bool {
     $sent[] = $m;
     return true;
 };
-$exNew = (int) Db::insert('exercises', ['name' => 'Exercici notificat', 'description' => 'x', 'category_id' => $catCadet, 'is_active' => 1, 'created_by' => 1, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
-Db::insert('exercise_categories', ['exercise_id' => $exNew, 'category_id' => $catCadet]);
+$exNew = (int) Db::insert('exercises', ['name' => 'Exercici notificat', 'description' => 'x', 'team_id' => $catCadet, 'is_active' => 1, 'created_by' => 1, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
+Db::insert('exercise_teams', ['exercise_id' => $exNew, 'team_id' => $catCadet]);
 $res = NotificationService::notifyNewExercise($exNew);
 t('Nou exercici: correu als entrenadors de l\'equip (sense duplicats)', $res['sent'] === count(array_unique(array_column($sent, 'to'))) && $res['sent'] >= 1 && str_contains($sent[0]['html'], 'Nou exercici'));
 t('Nou exercici: notificació dins l\'aplicació', (int) Db::value("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND title = 'Nou exercici' AND body LIKE 'Exercici notificat%'", [$annaId]) === 1);
@@ -741,6 +743,191 @@ t('Els ajustos de la PWA es reflecteixen al manifest i al theme-color', $mf['nam
 t('Un entrenador no pot canviar les icones', $anna->post('/admin/identitat/generar', [], '/exercicis')['status'] === 403);
 $admin->post('/admin/identitat/pwa', ['pwa_name' => 'Entrenaments JSPM', 'pwa_short_name' => 'JSPM', 'pwa_theme_color' => '#0b3d91', 'pwa_bg_color' => '#ffffff'], '/admin/identitat');
 $admin->post('/admin/identitat/generar', [], '/admin/identitat');
+
+section('Equips, jugadors, horaris i calendari');
+$monday = date('Y-m-d', strtotime('next monday'));
+$sch = ['1' => ['on' => 1, 'time' => '18:00', 'dur' => 90], '3' => ['on' => 1, 'time' => '19:30', 'dur' => 75]];
+$r = $admin->post("/categories/$catCadet", ['name' => 'Cadet', 'sort_order' => 6, 'is_active' => 1, 'sch' => ['1' => ['on' => 1, 'time' => '99:00', 'dur' => 90]]], '/categories');
+t('Horari de categoria amb hora invàlida rebutjat', $r['status'] === 422);
+$r = $admin->post("/categories/$catCadet", ['name' => 'Cadet', 'sort_order' => 6, 'is_active' => 1, 'sch' => $sch], '/categories');
+t('Horari de la categoria desat (dilluns i dimecres)', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM category_schedules WHERE category_id = ?', [$catCadet]) === 2);
+t('L\'equip hereta l\'horari de la categoria', count(\App\Models\Schedule::effectiveForTeam(\App\Models\Team::find($catCadet))) === 2);
+$n = (int) Db::value('SELECT COUNT(*) FROM attendance_sessions WHERE team_id = ? AND session_date >= CURDATE()', [$catCadet]);
+t('Es creen automàticament les fitxes dels pròxims dies', $n >= 10, "n=$n");
+t('No hi ha fitxes duplicades (índex únic)', (int) Db::value('SELECT COUNT(*) FROM (SELECT 1 FROM attendance_sessions GROUP BY team_id, session_date, start_time HAVING COUNT(*) > 1) x') === 0);
+t('Hi ha una fitxa el dilluns', (int) Db::value('SELECT COUNT(*) FROM attendance_sessions WHERE team_id = ? AND session_date = ?', [$catCadet, $monday]) === 1);
+$r = $admin->post('/calendari/festius', ['date_from' => $monday, 'name' => 'Festiu de prova'], '/calendari');
+t('Un festiu elimina la fitxa d\'aquell dia', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM attendance_sessions WHERE team_id = ? AND session_date = ?', [$catCadet, $monday]) === 0);
+t('El calendari mostra el festiu', str_contains($admin->get('/calendari?month=' . substr($monday, 0, 7))['body'], 'Festiu de prova'));
+$hid = (int) Db::value('SELECT id FROM holidays WHERE holiday_date = ?', [$monday]);
+$admin->post("/calendari/festius/$hid/elimina", [], '/calendari');
+t('En eliminar el festiu la fitxa torna a existir', (int) Db::value('SELECT COUNT(*) FROM attendance_sessions WHERE team_id = ? AND session_date = ?', [$catCadet, $monday]) === 1);
+$r = $admin->post('/calendari/festius', ['date_from' => $monday, 'date_to' => date('Y-m-d', strtotime($monday . ' +6 days')), 'name' => 'Vacances'], '/calendari');
+t('Un període de festius crea un registre per dia', (int) Db::value('SELECT COUNT(*) FROM holidays WHERE name = ?', ['Vacances']) === 7);
+$admin->post('/calendari/festius', ['date_from' => $monday, 'date_to' => '2000-01-01', 'name' => 'x'], '/calendari');
+t('Un període invers no es desa', (int) Db::value('SELECT COUNT(*) FROM holidays WHERE name = ?', ['x']) === 0);
+Db::run("DELETE FROM holidays");
+\App\Services\AttendanceService::rebuild();
+
+$r = $admin->post('/equips', ['name' => 'Cadet', 'category_id' => $catCadet, 'is_active' => 1], '/equips/nou');
+t('Nom d\'equip duplicat rebutjat', $r['status'] === 422);
+$r = $admin->post('/equips', ['name' => 'Cadet B', 'category_id' => $catCadet, 'is_active' => 1, 'trainer_ids' => [$annaId], 'own_schedule' => 1, 'sch' => ['2' => ['on' => 1, 'time' => '20:00', 'dur' => 60]]], '/equips/nou');
+$cadetB = (int) Db::value("SELECT id FROM teams WHERE name = 'Cadet B'");
+t('Equip creat amb categoria, entrenador i horari propi', $r['status'] === 303 && $cadetB > 0
+    && (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE team_id = ? AND user_id = ?', [$cadetB, $annaId]) === 1
+    && (int) Db::value('SELECT COUNT(*) FROM team_schedules WHERE team_id = ?', [$cadetB]) === 1);
+t('L\'horari propi substitueix el de la categoria', \App\Models\Schedule::effectiveForTeam(\App\Models\Team::find($cadetB))[0]['weekday'] == 2);
+t('Un entrenador pot tenir més d\'un equip', count(\App\Models\User::teamIds($annaId)) === 2);
+t('Un equip pot tenir més d\'un entrenador', (function () use ($admin, $cadetB, $annaId) {
+    $admin->post('/entrenadors', ['first_name' => 'Pau', 'last_name' => 'Segon', 'email' => 'pau@prova.cat', 'is_active' => 1, 'team_ids' => [$cadetB]], '/entrenadors/nou');
+    return (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE team_id = ?', [$cadetB]) === 2
+        && ($admin->post("/equips/$cadetB", ['name' => 'Cadet B', 'category_id' => 0, 'is_active' => 1, 'trainer_ids' => [$annaId, (int) Db::value("SELECT id FROM users WHERE email = 'pau@prova.cat'")]], '/equips/nou')['status'] === 303)
+        && (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE team_id = ?', [$cadetB]) === 2;
+})());
+$admin->post("/equips/$cadetB", ['name' => 'Cadet B', 'category_id' => $catCadet, 'is_active' => 1, 'trainer_ids' => [$annaId]], '/equips/nou');
+t('Sense horari propi l\'equip torna a heretar', count(\App\Models\Schedule::effectiveForTeam(\App\Models\Team::find($cadetB))) === 2);
+foreach (['/equips', '/equips/nou', "/equips/$cadetB/editar", '/jugadors', '/jugadors/nou', '/jugadors/importa', '/calendari', '/assistencia/resum', "/assistencia/equip/$cadetB"] as $path) {
+    t("Administrador veu $path", $admin->get($path)['status'] === 200);
+    t("Entrenador no veu $path", $anna->get($path)['status'] === 403);
+}
+t('Pàgina d\'equip per a l\'entrenador assignat', $anna->get("/equips/$cadetB")['status'] === 200);
+t('Pàgina d\'equip d\'un equip aliè → 404', $anna->get("/equips/$catInfantil")['status'] === 404);
+
+// Jugadors
+$r = $admin->post('/jugadors', ['full_name' => 'Marc Prova', 'birth_date' => '2010-05-04', 'team_id' => $catCadet, 'is_active' => 1], '/jugadors/nou');
+t('Data de neixament en format incorrecte rebutjada', $r['status'] === 422);
+$r = $admin->post('/jugadors', ['full_name' => 'Marc Prova', 'birth_date' => '31/02/2010', 'team_id' => $catCadet, 'is_active' => 1], '/jugadors/nou');
+t('Data impossible rebutjada', $r['status'] === 422);
+$r = $admin->post('/jugadors', ['full_name' => 'Marc Prova', 'birth_date' => '04/05/2010', 'team_id' => 99999, 'is_active' => 1], '/jugadors/nou');
+t('Equip inexistent rebutjat', $r['status'] === 422);
+$r = $admin->post('/jugadors', ['full_name' => '<b>Marc</b> Prova', 'birth_date' => '04/05/2010', 'team_id' => $catCadet, 'is_active' => 1], '/jugadors/nou');
+$mark = (int) Db::value("SELECT id FROM players WHERE full_name LIKE '%Prova'");
+t('Jugador creat amb data DD/MM/AAAA', $r['status'] === 303 && Db::value('SELECT birth_date FROM players WHERE id = ?', [$mark]) === '2010-05-04');
+$list = $admin->get('/jugadors?q=Prova')['body'];
+t('El llistat mostra la data com a DD/MM/AAAA i escapa HTML', str_contains($list, '04/05/2010') && !str_contains($list, '<b>Marc</b>'));
+t('El formulari d\'edició mostra la data com a DD/MM/AAAA', str_contains($admin->get("/jugadors/$mark/editar")['body'], 'value="04/05/2010"'));
+Db::insert('players', ['full_name' => 'Laia Segona', 'birth_date' => '2010-01-01', 'team_id' => $catCadet, 'is_active' => 1, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
+Db::insert('players', ['full_name' => 'Nil Tercer', 'birth_date' => null, 'team_id' => $catCadet, 'is_active' => 1, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
+Db::insert('players', ['full_name' => 'Inactiu Quart', 'birth_date' => null, 'team_id' => $catCadet, 'is_active' => 0, 'created_at' => Db::now(), 'updated_at' => Db::now()]);
+
+// Importació
+$csvPath = $tmp . '/jug.csv';
+file_put_contents($csvPath, "\xEF\xBB\xBFNom i cognoms;Data de neixament;Equip\nJoan Pons;05/03/2015;Benjamí A\nMarta Sala;31/02/2014;Aleví B\nPere Vila;10/10/2013;Aleví B\n;;\nAnna Soler;01/06/2013;aleví b\nSense Equip;01/01/2012;\n");
+$csrf = $admin->csrf('/jugadors/importa');
+$r = $admin->request('POST', '/jugadors/importa', ['_csrf' => $csrf, 'file' => new CURLFile($csvPath, 'text/csv', 'jug.csv')]);
+t('La previsualització de la importació mostra equips nous i errors', $r['status'] === 200 && str_contains($r['body'], 'Es crearà') && str_contains($r['body'], 'Data de neixament no vàlida') && str_contains($r['body'], 'Falta l&#039;equip'));
+t('La previsualització no escriu res', (int) Db::value("SELECT COUNT(*) FROM players WHERE full_name = 'Joan Pons'") === 0 && (int) Db::value("SELECT COUNT(*) FROM teams WHERE name = 'Benjamí A'") === 0);
+$r = $admin->post('/jugadors/importa/confirma', [], '/jugadors/importa');
+t('Confirmar la importació crea jugadors i equips', $r['status'] === 303 && (int) Db::value("SELECT COUNT(*) FROM players WHERE full_name IN ('Joan Pons','Pere Vila','Anna Soler')") === 3
+    && (int) Db::value("SELECT COUNT(*) FROM teams WHERE name IN ('Benjamí A','Aleví B')") === 2);
+t('Els equips nous s\'assignen a la categoria pel nom', Db::value("SELECT c.name FROM teams t JOIN categories c ON c.id = t.category_id WHERE t.name = 'Aleví B'") === 'Aleví');
+t('Els equips amb el mateix nom (majúscules) no es dupliquen', (int) Db::value("SELECT COUNT(*) FROM teams WHERE name LIKE 'Alev%'") === 2 /* Aleví + Aleví B */);
+t('Dates de la importació desades correctament', Db::value("SELECT birth_date FROM players WHERE full_name = 'Joan Pons'") === '2015-03-05');
+$r = $admin->post('/jugadors/importa/confirma', [], '/jugadors/importa');
+t('La importació no es pot confirmar dues vegades', $r['status'] === 303 && (int) Db::value("SELECT COUNT(*) FROM players WHERE full_name = 'Joan Pons'") === 1);
+$csrf = $admin->csrf('/jugadors/importa');
+file_put_contents($csvPath, "Nom;Naixement;Equip\nJoan Pons;05/03/2015;Aleví B\nNou Jugador;02/02/2012;Aleví B\n");
+$admin->request('POST', '/jugadors/importa', ['_csrf' => $csrf, 'file' => new CURLFile($csvPath, 'text/csv', 'jug.csv')]);
+$admin->post('/jugadors/importa/confirma', [], '/jugadors/importa');
+t('Reimportar no duplica i actualitza l\'equip', (int) Db::value("SELECT COUNT(*) FROM players WHERE full_name = 'Joan Pons'") === 1
+    && Db::value("SELECT t.name FROM players p JOIN teams t ON t.id = p.team_id WHERE p.full_name = 'Joan Pons'") === 'Aleví B'
+    && (int) Db::value("SELECT COUNT(*) FROM players WHERE full_name = 'Nou Jugador'") === 1);
+
+// Importació des d'Excel (.xlsx) construït a mà
+$xlsx = $tmp . '/jug.xlsx';
+$z = new ZipArchive();
+$z->open($xlsx, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$z->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>');
+$z->addFromString('xl/workbook.xml', '<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Fulla" sheetId="1" r:id="rId7"/></sheets></workbook>');
+$z->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId7" Type="x" Target="worksheets/sheet1.xml"/></Relationships>');
+$z->addFromString('xl/sharedStrings.xml', '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Nom i cognoms</t></si><si><t>Data de neixament</t></si><si><t>Equip</t></si><si><t>Èric Ferrer Gil</t></si><si><t>Infantil A</t></si><si><t>07/08/2011</t></si></sst>');
+$z->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+    . '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c></row>'
+    . '<row r="2"><c r="A2" t="s"><v>3</v></c><c r="B2"><v>40762</v></c><c r="C2" t="s"><v>4</v></c></row>'
+    . '<row r="4"><c r="A4" t="inlineStr"><is><t>Júlia Roca</t></is></c><c r="B4" t="s"><v>5</v></c><c r="C4" t="inlineStr"><is><t>Infantil A</t></is></c></row>'
+    . '</sheetData></worksheet>');
+$z->close();
+$parsed = \App\Services\PlayerImport::parseFile($xlsx, 'jug.xlsx');
+t('Lector d\'.xlsx: cel·les de text, dates en sèrie i dates en text', count($parsed['rows']) === 2 && $parsed['rows'][0]['name'] === 'Èric Ferrer Gil'
+    && $parsed['rows'][0]['birth'] === '2011-08-07' && $parsed['rows'][1]['birth'] === '2011-08-07' && $parsed['rows'][1]['line'] === 4 && !$parsed['errors']);
+$csrf = $admin->csrf('/jugadors/importa');
+$r = $admin->request('POST', '/jugadors/importa', ['_csrf' => $csrf, 'file' => new CURLFile($xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'jug.xlsx')]);
+$admin->post('/jugadors/importa/confirma', [], '/jugadors/importa');
+t('Importació d\'un .xlsx crea l\'equip Infantil A', $r['status'] === 200 && (int) Db::value("SELECT COUNT(*) FROM players p JOIN teams t ON t.id = p.team_id WHERE t.name = 'Infantil A'") === 2);
+$phpPath = $tmp . '/mal.php';
+file_put_contents($phpPath, '<?php echo 1;');
+$csrf = $admin->csrf('/jugadors/importa');
+$r = $admin->request('POST', '/jugadors/importa', ['_csrf' => $csrf, 'file' => new CURLFile($phpPath, 'text/plain', 'mal.php')]);
+t('Un fitxer amb extensió no admesa es rebutja', $r['status'] === 422);
+$badZip = $tmp . '/trencat.xlsx';
+file_put_contents($badZip, 'no sóc un zip');
+$csrf = $admin->csrf('/jugadors/importa');
+$r = $admin->request('POST', '/jugadors/importa', ['_csrf' => $csrf, 'file' => new CURLFile($badZip, 'application/octet-stream', 'trencat.xlsx')]);
+t('Un .xlsx corrupte dóna un error comprensible', $r['status'] === 422 && !str_contains($r['body'], 'Stack'));
+t('L\'entrenador no pot importar jugadors', $anna->post('/jugadors/importa/confirma', [], '/exercicis')['status'] === 403);
+t('Es pot descarregar la plantilla CSV', str_contains($admin->get('/jugadors/plantilla')['body'], 'Nom i cognoms;Data de neixament;Equip'));
+
+// Assistència
+$today = date('Y-m-d');
+\App\Models\Attendance::addManual($catCadet, $today, '09:00:00', 90);
+\App\Models\Attendance::addManual($cadetB, date('Y-m-d', strtotime('+3 days')), '09:00:00', 90);
+\App\Models\Attendance::addManual($catInfantil, $today, '09:00:00', 90);
+$sToday = (int) Db::value('SELECT id FROM attendance_sessions WHERE team_id = ? AND session_date = ? AND start_time = "09:00:00"', [$catCadet, $today]);
+$sFuture = (int) Db::value('SELECT id FROM attendance_sessions WHERE team_id = ? AND start_time = "09:00:00" AND session_date > CURDATE()', [$cadetB]);
+$sOther = (int) Db::value('SELECT id FROM attendance_sessions WHERE team_id = ? AND session_date = ?', [$catInfantil, $today]);
+$laia = (int) Db::value("SELECT id FROM players WHERE full_name = 'Laia Segona'");
+$nil = (int) Db::value("SELECT id FROM players WHERE full_name = 'Nil Tercer'");
+$inactiu = (int) Db::value("SELECT id FROM players WHERE full_name = 'Inactiu Quart'");
+t('Dos entrenadors del mateix equip no es barallen: fitxa visible', ($sheet = $anna->get("/assistencia/$sToday"))['status'] === 200);
+t('La fitxa mostra els jugadors actius però no els inactius', str_contains($sheet['body'], 'Laia Segona') && str_contains($sheet['body'], 'Nil Tercer') && !str_contains($sheet['body'], 'Inactiu Quart'));
+t('El panell de l\'entrenador mostra l\'entrenament d\'avui', str_contains($anna->get('/')['body'], 'Cadet'));
+t('Un entrenador no veu la fitxa d\'un equip que no porta', $anna->get("/assistencia/$sOther")['status'] === 404);
+t('Un entrenador no pot marcar assistència d\'un altre equip', $anna->post("/assistencia/$sOther", ['status' => [$laia => 'present']], "/assistencia/$sToday")['status'] === 404
+    && (int) Db::value('SELECT COUNT(*) FROM attendance_records WHERE session_id = ?', [$sOther]) === 0);
+$r = $anna->post("/assistencia/$sToday", ['status' => [$mark => 'present', $laia => 'late', $nil => 'absent', $inactiu => 'absent', $catInfantil => 'hack']], "/assistencia/$sToday");
+$rec = \App\Models\Attendance::records($sToday);
+t('L\'entrenador marca assistència, retard i falta', $r['status'] === 303 && ($rec[$mark] ?? '') === 'present' && ($rec[$laia] ?? '') === 'late' && ($rec[$nil] ?? '') === 'absent');
+t('No es marquen jugadors inactius ni estats invàlids', !isset($rec[$inactiu]) && count($rec) === 3);
+$anna->post("/assistencia/$sToday", ['status' => [$mark => '', $laia => 'present', $nil => 'absent']], "/assistencia/$sToday");
+$rec = \App\Models\Attendance::records($sToday);
+t('Es pot corregir i desmarcar un jugador', !isset($rec[$mark]) && $rec[$laia] === 'present');
+$anna->post("/assistencia/$sToday", ['status' => [$laia => 'late'], 'action' => 'all_present'], "/assistencia/$sToday");
+$rec = \App\Models\Attendance::records($sToday);
+t('«Tots presents» només omple els que no tenen marca', $rec[$mark] === 'present' && $rec[$laia] === 'late' && $rec[$nil] === 'absent');
+$r = $anna->post("/assistencia/$sFuture", ['status' => [$laia => 'present']], "/assistencia/$sToday");
+t('No es pot passar llista d\'un entrenament futur', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM attendance_records WHERE session_id = ?', [$sFuture]) === 0);
+t('La fitxa d\'un entrenament futur és de només lectura', !str_contains($anna->get("/assistencia/$sFuture")['body'], 'Desa l&#039;assistència'));
+t('L\'administrador no pot cancel·lar sense CSRF vàlid', $admin->post("/assistencia/$sToday/cancela", [], '/', false)['status'] === 419);
+t('L\'entrenador no pot cancel·lar entrenaments', $anna->post("/assistencia/$sToday/cancela", [], "/assistencia/$sToday")['status'] === 403);
+t('Les marques de la CSRF falsa no s\'accepten', $anna->post("/assistencia/$sToday", ['status' => [$laia => 'absent']], '/', false)['status'] === 419 && \App\Models\Attendance::records($sToday)[$laia] === 'late');
+
+// Resums
+$w = $admin->get('/assistencia/resum')['body'];
+t('El resum setmanal mostra el jugador que ha faltat i el que ha arribat tard', str_contains($w, 'Nil Tercer') && str_contains($w, 'Laia Segona') && str_contains($w, 'Cadet'));
+t('El resum setmanal no mostra qui ha vingut', !str_contains($w, 'Marc') || !str_contains($w, 'Marc</b> Prova'));
+$oldWeek = $admin->get('/assistencia/resum?week=2000-01-03')['body'];
+t('Una setmana sense dades ho indica', str_contains($oldWeek, 'Cap jugador ha faltat'));
+t('Una setmana amb format invàlid no trenca la pàgina', $admin->get('/assistencia/resum?week=xx')['status'] === 200);
+$st = $admin->get("/assistencia/equip/$catCadet")['body'];
+t('L\'estadística per equip mostra faltes i percentatge', str_contains($st, 'Nil Tercer') && str_contains($st, '0 %') && str_contains($st, 'Laia Segona'));
+t('Dashboard de l\'administrador mostra les faltes de la setmana', str_contains($admin->get('/')['body'], 'Faltes aquesta setmana'));
+$admin->post("/assistencia/$sToday/cancela", [], '/assistencia');
+t('L\'administrador cancel·la un entrenament i queda de només lectura', Db::value('SELECT status FROM attendance_sessions WHERE id = ?', [$sToday]) === 'cancelled'
+    && $anna->post("/assistencia/$sToday", ['status' => [$laia => 'absent']], "/assistencia/$sToday")['status'] === 303 && \App\Models\Attendance::records($sToday)[$laia] === 'late');
+t('Un entrenament cancel·lat no compta a les faltes', !str_contains($admin->get('/assistencia/resum')['body'], 'Nil Tercer'));
+$admin->post("/assistencia/$sToday/cancela", [], '/assistencia');
+t('Es pot restaurar un entrenament cancel·lat', Db::value('SELECT status FROM attendance_sessions WHERE id = ?', [$sToday]) === 'scheduled');
+$r = $admin->post('/assistencia/extra', ['team_id' => $catCadet, 'date' => $today, 'start_time' => '21:00', 'duration' => 60], '/calendari');
+t('Entrenament extra afegit al calendari', $r['status'] === 303 && (int) Db::value("SELECT COUNT(*) FROM attendance_sessions WHERE team_id = ? AND session_date = ? AND source = 'manual' AND start_time = '21:00:00'", [$catCadet, $today]) === 1);
+t('Un jugador eliminat s\'emporta el seu historial', (function () use ($admin, $nil) {
+    $admin->post("/jugadors/$nil/eliminar", [], '/jugadors');
+    return (int) Db::value('SELECT COUNT(*) FROM attendance_records WHERE player_id = ?', [$nil]) === 0 && (int) Db::value('SELECT COUNT(*) FROM players WHERE id = ?', [$nil]) === 0;
+})());
+t('Un equip amb jugadors no es pot eliminar', (function () use ($admin, $catCadet) {
+    $admin->post("/equips/$catCadet/eliminar", [], '/equips');
+    return (int) Db::value('SELECT COUNT(*) FROM teams WHERE id = ?', [$catCadet]) === 1;
+})());
+t('Sessió anònima no accedeix a l\'assistència', (new Client($base))->get('/assistencia')['status'] === 303);
 
 section('Sessions, desactivació i tancament');
 Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$annaId]);

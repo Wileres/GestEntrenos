@@ -33,7 +33,7 @@ final class NotificationService
         );
     }
 
-    /** Entrenadors actius amb correu i contrasenya que tenen assignada alguna categoria (equip) de l'entrenament (sense duplicats). */
+    /** Entrenadors actius amb correu i contrasenya que tenen assignada algun equip de l'entrenament (sense duplicats). */
     public static function recipients(int $trainingId): array
     {
         return Db::all(
@@ -41,14 +41,14 @@ final class NotificationService
              FROM users u
              JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'trainer'
              WHERE u.is_active = 1 AND u.email IS NOT NULL AND u.password_hash IS NOT NULL
-               AND EXISTS (SELECT 1 FROM user_categories uc JOIN training_categories tc ON tc.category_id = uc.category_id
+               AND EXISTS (SELECT 1 FROM user_teams uc JOIN training_teams tc ON tc.team_id = uc.team_id
                            WHERE uc.user_id = u.id AND tc.training_id = ?)
              ORDER BY u.id",
             [$trainingId]
         );
     }
 
-    /** Entrenadors actius amb alguna de les categories (equips) de l'exercici, sense duplicats. */
+    /** Entrenadors actius amb alguna dels equips de l'exercici, sense duplicats. */
     public static function exerciseRecipients(int $exerciseId): array
     {
         return Db::all(
@@ -56,7 +56,7 @@ final class NotificationService
              FROM users u
              JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'trainer'
              WHERE u.is_active = 1 AND u.password_hash IS NOT NULL
-               AND EXISTS (SELECT 1 FROM user_categories uc JOIN exercise_categories ec ON ec.category_id = uc.category_id
+               AND EXISTS (SELECT 1 FROM user_teams uc JOIN exercise_teams ec ON ec.team_id = uc.team_id
                            WHERE uc.user_id = u.id AND ec.exercise_id = ?)
              ORDER BY u.id",
             [$exerciseId]
@@ -71,7 +71,7 @@ final class NotificationService
         if ($ex === null || (int) $ex['is_active'] !== 1) {
             return $result;
         }
-        $teams = array_column(\App\Models\Exercise::extraCategories($exerciseId), 'name');
+        $teams = array_column(\App\Models\Exercise::teams($exerciseId), 'name');
         foreach (self::exerciseRecipients($exerciseId) as $u) {
             Notifier::notify((int) $u['id'], 'Nou exercici', $ex['name'] . ' (' . implode(', ', $teams) . ')', '/exercicis/' . $exerciseId);
             if ((int) $u['notify_email'] !== 1 || empty($u['email'])) {
@@ -92,7 +92,7 @@ final class NotificationService
         if ($training === null) {
             return ['sent' => 0, 'failed' => 0];
         }
-        $categories = array_column(Training::categories($trainingId), 'name');
+        $teams = array_column(Training::teams($trainingId), 'name');
         [$type, $subject] = match ($kind) {
             'published' => ['training_published', 'Nou entrenament: ' . $training['title']],
             'cancelled' => ['training_cancelled', 'Entrenament cancel·lat: ' . $training['title']],
@@ -110,7 +110,7 @@ final class NotificationService
             }
             $ok = MailService::send($type, $u['email'], $u['first_name'] . ' ' . $u['last_name'], $subject, 'training', [
                 'first_name' => $u['first_name'], 'kind' => $kind, 'training' => $training,
-                'categories' => $categories, 'changes' => $changes,
+                'teams' => $teams, 'changes' => $changes,
                 'link' => absolute_url('/entrenaments/' . $trainingId),
             ]);
             $result[$ok ? 'sent' : 'failed']++;

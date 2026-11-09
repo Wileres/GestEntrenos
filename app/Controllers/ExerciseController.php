@@ -8,7 +8,7 @@ use App\Helpers\Db;
 use App\Helpers\Labels;
 use App\Helpers\Request;
 use App\Helpers\Response;
-use App\Models\Category;
+use App\Models\Team;
 use App\Models\Exercise;
 use App\Services\AuditService;
 use App\Services\FileService;
@@ -20,11 +20,11 @@ final class ExerciseController extends Controller
     public function index(Request $r, array $p): void
     {
         $filters = [
-            'name' => $r->q('name'), 'category' => $r->q('category'), 'objective' => $r->q('objective'), 'material' => $r->q('material'),
+            'name' => $r->q('name'), 'team' => $r->q('team'), 'objective' => $r->q('objective'), 'material' => $r->q('material'),
             'difficulty' => $r->q('difficulty'), 'players' => $r->q('players'), 'status' => $r->q('status'), 'page' => $r->q('page'),
         ];
         [$rows, $pg] = Exercise::search($filters, (int) $filters['page'], is_admin());
-        $this->render('exercises/index', ['title' => 'Exercicis', 'exercises' => $rows, 'pager' => $pg, 'filters' => $filters, 'categories' => Category::all()]);
+        $this->render('exercises/index', ['title' => 'Exercicis', 'exercises' => $rows, 'pager' => $pg, 'filters' => $filters, 'teams' => Team::all()]);
     }
 
     public function show(Request $r, array $p): void
@@ -34,14 +34,14 @@ final class ExerciseController extends Controller
             Response::notFound();
         }
         $this->render('exercises/show', [
-            'title' => $e['name'], 'e' => $e, 'extra' => Exercise::extraCategories((int) $e['id']), 'files' => Exercise::files((int) $e['id']),
+            'title' => $e['name'], 'e' => $e, 'extra' => Exercise::teams((int) $e['id']), 'files' => Exercise::files((int) $e['id']),
         ]);
     }
 
     private function formData(?array $e): array
     {
         return [
-            'title' => $e ? 'Edita l\'exercici' : 'Nou exercici', 'exercise' => $e, 'categories' => Category::all(),
+            'title' => $e ? 'Edita l\'exercici' : 'Nou exercici', 'exercise' => $e, 'teams' => Team::all(),
             'files' => $e ? Exercise::files((int) $e['id']) : [],
         ];
     }
@@ -55,7 +55,7 @@ final class ExerciseController extends Controller
     {
         $id = $this->id($p);
         $e = Exercise::find($id) ?? Response::notFound();
-        $this->render('exercises/form', $this->formData($e) + ['old' => $e + ['extra_categories' => Exercise::extraCategoryIds($id)]]);
+        $this->render('exercises/form', $this->formData($e) + ['old' => $e + ['team_ids' => Exercise::teamIds($id)]]);
     }
 
     public function store(Request $r, array $p): void
@@ -72,7 +72,7 @@ final class ExerciseController extends Controller
 
     private function save(Request $r, ?int $id): void
     {
-        $catIds = array_column(Category::all(), 'id');
+        $catIds = array_column(Team::all(), 'id');
         $d = [];
         foreach (['name', 'description', 'objective', 'duration_minutes', 'players', 'material', 'difficulty'] as $k) {
             $d[$k] = $r->str($k);
@@ -83,9 +83,9 @@ final class ExerciseController extends Controller
             ->maxLen('objective', 'Objectiu', 255)->maxLen('material', 'Material', 255)
             ->intRange('duration_minutes', 'Durada', 1, 600)->intRange('players', 'Nombre de jugadors', 1, 200)
             ->inList('difficulty', 'Dificultat', array_keys(Labels::DIFFICULTY), false);
-        $extra = $this->onlyKnown($r->intList('extra_categories'), $catIds);
+        $extra = $this->onlyKnown($r->intList('team_ids'), $catIds);
         if (!$extra) {
-            $v->error('extra_categories', 'Cal seleccionar almenys un equip.');
+            $v->error('team_ids', 'Cal seleccionar almenys un equip.');
         }
 
         $valid = [];
@@ -99,11 +99,11 @@ final class ExerciseController extends Controller
         }
         if ($v->fails()) {
             $e = $id ? Exercise::find($id) : null;
-            $this->invalid('exercises/form', $this->formData($e), $v->errors(), $d + ['extra_categories' => $extra]);
+            $this->invalid('exercises/form', $this->formData($e), $v->errors(), $d + ['team_ids' => $extra]);
             return;
         }
 
-        $d['extra_categories'] = $extra;
+        $d['team_ids'] = $extra;
         $d['is_active'] = $d['is_active'] === '1';
         $isNew = $id === null;
         $wasActive = $isNew ? false : (int) (Exercise::find($id)['is_active'] ?? 0) === 1;

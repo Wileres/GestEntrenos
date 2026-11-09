@@ -6,13 +6,13 @@
 </form>
 <div class="table-wrap">
 <table class="table">
-    <thead><tr><th>Nom</th><th>Correu</th><th>Categories</th><th>Estat</th><th>Accions</th></tr></thead>
+    <thead><tr><th>Nom</th><th>Correu</th><th>Equips</th><th>Estat</th><th>Accions</th></tr></thead>
     <tbody>
     <?php foreach ($trainers as $t): ?>
         <tr>
             <td data-label="Nom"><a href="<?= e(url('/entrenadors/' . $t['id'] . '/editar')) ?>"><?= e($t['last_name'] . ', ' . $t['first_name']) ?></a></td>
             <td data-label="Correu"><?= e($t['email']) ?></td>
-            <td data-label="Categories"><?= (int) $t['categories_count'] ?></td>
+            <td data-label="Equips"><?= (int) $t['teams_count'] ?></td>
             <td data-label="Estat"><?= active_badge($t['is_active']) ?><?= (int) $t['has_password'] ? '' : ' <span class="badge badge-warning">Pendent d\'activar</span>' ?></td>
             <td data-label="Accions" class="actions">
                 <a class="btn btn-sm btn-secondary" href="<?= e(url('/entrenadors/' . $t['id'] . '/editar')) ?>">Edita</a>

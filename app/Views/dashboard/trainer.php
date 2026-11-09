@@ -1,21 +1,25 @@
 <?php $user = current_user(); ?>
 <h1>Hola, <?= e($user['first_name']) ?>!</h1>
+<section class="card"><h2><?= icon('clock') ?>Entrenaments d'avui</h2>
+    <?php \App\Helpers\View::component('session_list', ['items' => $todaySessions, 'empty' => 'Avui no tens cap entrenament.']); ?>
+    <p><a href="<?= e(url('/assistencia')) ?>">Tots els entrenaments i fitxes</a></p>
+</section>
 <div class="grid grid-2">
     <section class="card"><h2><?= icon('calendar') ?>Pròxims entrenaments</h2>
         <?php \App\Helpers\View::component('training_list', ['items' => $upcoming, 'empty' => 'No tens entrenaments programats.']); ?>
         <p><a href="<?= e(url('/entrenaments')) ?>">Tots els meus entrenaments</a></p>
     </section>
     <section class="card"><h2><?= icon('users') ?>Els meus equips</h2>
-        <?php if ($categories): ?>
+        <?php if ($teams): ?>
             <div class="team-buttons">
-            <?php foreach ($categories as $c): ?><a class="btn btn-primary" href="<?= e(url('/equips/' . $c['id'])) ?>"><?= e($c['name']) ?></a><?php endforeach; ?>
+            <?php foreach ($teams as $c): ?><a class="btn btn-primary" href="<?= e(url('/equips/' . $c['id'])) ?>"><?= e($c['name']) ?></a><?php endforeach; ?>
             </div>
             <p class="muted">Fes clic en un equip per veure'n els exercicis i els entrenaments.</p>
         <?php else: ?><p class="muted">Encara no tens equips assignats.</p><?php endif; ?>
     </section>
     <section class="card"><h2><?= icon('ball') ?>Últims exercicis</h2>
         <?php if ($exercises): ?><ul class="list"><?php foreach ($exercises as $e): ?>
-            <li><a href="<?= e(url('/exercicis/' . $e['id'])) ?>"><?= e($e['name']) ?></a> <small class="muted"><?= e($e['category_name']) ?></small></li>
+            <li><a href="<?= e(url('/exercicis/' . $e['id'])) ?>"><?= e($e['name']) ?></a> <small class="muted"><?= e($e['team_name']) ?></small></li>
         <?php endforeach; ?></ul><?php else: ?><p class="muted">Encara no hi ha exercicis.</p><?php endif; ?>
         <p><a class="btn btn-secondary" href="<?= e(url('/exercicis')) ?>">Catàleg d'exercicis</a></p>
     </section>
