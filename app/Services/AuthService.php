@@ -77,7 +77,7 @@ final class AuthService
         }
 
         $user = Db::one(
-            'SELECT id, password_hash, is_active FROM users WHERE (username = ? OR email = ?) LIMIT 1',
+            'SELECT id, password_hash, is_active, pending_approval FROM users WHERE (username = ? OR email = ?) LIMIT 1',
             [$norm, $norm]
         );
         static $dummy = null;
@@ -85,6 +85,9 @@ final class AuthService
         $hash = ($user && $user['password_hash']) ? $user['password_hash'] : $dummy;
         $valid = password_verify($password, $hash) && $user && $user['password_hash'] && (int) $user['is_active'] === 1;
 
+        if (!$valid && $user && $user['password_hash'] && (int) $user['pending_approval'] === 1 && password_verify($password, $user['password_hash'])) {
+            return ['ok' => false, 'error' => 'El teu compte encara està pendent d\'aprovació per part d\'un administrador. Rebràs un correu quan estigui activat.'];
+        }
         if (!$valid) {
             Db::insert('login_attempts', ['identifier' => $norm, 'ip_address' => $ip, 'created_at' => Db::now()]);
             AuditService::log('login_failed', 'user', $user ? (int) $user['id'] : null, 'error', 'Intent d\'accés fallit', $user ? (int) $user['id'] : null);

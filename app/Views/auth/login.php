@@ -7,3 +7,4 @@
     <button class="btn btn-primary btn-block" type="submit"><?= icon('logout') ?>Entra</button>
 </form>
 <p class="center"><a href="<?= e(url('/contrasenya/oblidada')) ?>">Has oblidat la contrasenya?</a></p>
+<p class="center"><a href="<?= e(url('/registre')) ?>">Ets entrenador? Registra't</a></p>

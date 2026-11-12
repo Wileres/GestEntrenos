@@ -75,6 +75,12 @@ final class TrainerController extends Controller
         }
 
         $isNew = $id === null;
+        $existing = $isNew ? null : User::findTrainer($id);
+        $approving = $existing !== null && (int) $existing['pending_approval'] === 1 && $d['is_active'] === '1';
+        if ($approving && !$catIds) {
+            $this->invalid('trainers/form', $this->formData($existing), ['team_ids' => 'Cal assignar almenys un equip per activar un entrenador pendent.'], $d + ['team_ids' => $catIds]);
+            return;
+        }
         $oldCats = $isNew ? [] : User::teamIds($id);
         $token = null;
         $id = Db::transaction(function () use ($id, $d, $catIds, $isNew, &$token) {
@@ -86,6 +92,12 @@ final class TrainerController extends Controller
             return $id;
         });
         AuditService::log($isNew ? 'trainer_created' : 'trainer_updated', 'user', $id);
+        if ($approving) {
+            User::approve($id);
+            AuditService::log('trainer_approved', 'user', $id);
+            $sent = NotificationService::sendApproved($d);
+            $this->done($sent ? 'Entrenador aprovat i activat. S\'ha enviat un correu d\'avís.' : 'Entrenador aprovat i activat, però el correu d\'avís no s\'ha pogut enviar.', '/entrenadors', $sent ? 'success' : 'warning');
+        }
         if (array_diff($catIds, $oldCats) || array_diff($oldCats, $catIds)) {
             AuditService::log('trainer_teams_assigned', 'user', $id, 'ok', 'Equips: ' . implode(',', $catIds));
         }
@@ -104,6 +116,9 @@ final class TrainerController extends Controller
     {
         $id = $this->id($p);
         $t = User::findTrainer($id) ?? Response::notFound();
+        if ((int) $t['pending_approval'] === 1) {
+            $this->done('Aquest entrenador està pendent d\'aprovació: assigna-li un equip i activa el compte des d\'aquí.', '/entrenadors/' . $id . '/editar', 'warning');
+        }
         $new = (int) $t['is_active'] !== 1;
         User::setActive($id, $new);
         AuditService::log($new ? 'trainer_activated' : 'trainer_deactivated', 'user', $id);

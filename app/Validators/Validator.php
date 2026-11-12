@@ -95,14 +95,14 @@ final class Validator
         return !in_array($v, array_map('strval', $allowed), true) ? $this->fail($f, "El valor del camp «{$label}» no és vàlid.") : $this;
     }
 
-    public function password(string $f, string $confirmField = 'password_confirmation'): static
+    public function password(string $f, string $confirmField = 'password_confirmation', int $min = 8): static
     {
         $v = $this->data[$f] ?? '';
         if (!is_string($v) || $v === '') {
             return $this->fail($f, 'Cal introduir una contrasenya.');
         }
-        if (strlen($v) < 8 || strlen($v) > 128 || !preg_match('/[A-Za-z]/', $v) || !preg_match('/\d/', $v)) {
-            return $this->fail($f, 'La contrasenya ha de tenir almenys 8 caràcters, amb lletres i números.');
+        if (strlen($v) < $min || strlen($v) > 128 || !preg_match('/[A-Za-z]/', $v) || !preg_match('/\d/', $v)) {
+            return $this->fail($f, "La contrasenya ha de tenir almenys {$min} caràcters, amb lletres i números.");
         }
         if (!hash_equals($v, (string) ($this->data[$confirmField] ?? ''))) {
             return $this->fail($confirmField, 'Les contrasenyes no coincideixen.');

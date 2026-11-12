@@ -13,7 +13,7 @@
             <td data-label="Nom"><a href="<?= e(url('/entrenadors/' . $t['id'] . '/editar')) ?>"><?= e($t['last_name'] . ', ' . $t['first_name']) ?></a></td>
             <td data-label="Correu"><?= e($t['email']) ?></td>
             <td data-label="Equips"><?= (int) $t['teams_count'] ?></td>
-            <td data-label="Estat"><?= active_badge($t['is_active']) ?><?= (int) $t['has_password'] ? '' : ' <span class="badge badge-warning">Pendent d\'activar</span>' ?></td>
+            <td data-label="Estat"><?= active_badge($t['is_active']) ?><?= (int) $t['pending_approval'] ? ' <span class="badge badge-warning">Pendent d\'aprovar</span>' : '' ?><?= (int) $t['has_password'] ? '' : ' <span class="badge badge-warning">Pendent d\'activar</span>' ?></td>
             <td data-label="Accions" class="actions">
                 <a class="btn btn-sm btn-secondary" href="<?= e(url('/entrenadors/' . $t['id'] . '/editar')) ?>">Edita</a>
                 <?= post_form_open('/entrenadors/' . $t['id'] . '/estat', (int) $t['is_active'] ? 'Vols desactivar aquest entrenador? No podrà iniciar sessió.' : '') ?>

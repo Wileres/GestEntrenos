@@ -45,6 +45,71 @@ final class AuthController extends Controller
         Response::redirect('/acces');
     }
 
+    private function newCaptcha(): string
+    {
+        $a = random_int(2, 9);
+        $b = random_int(2, 9);
+        Session::set('captcha_answer', (string) ($a + $b));
+        return "Quant fa {$a} + {$b}?";
+    }
+
+    private function registerView(array $extra = [], int $status = 200): void
+    {
+        $this->render('auth/register', ['title' => 'Registre d\'entrenador', 'captcha' => $this->newCaptcha()] + $extra, $status, 'auth');
+    }
+
+    public function showRegister(Request $r, array $p): void
+    {
+        $this->registerView();
+    }
+
+    public function register(Request $r, array $p): void
+    {
+        $d = ['first_name' => $r->str('first_name'), 'last_name' => $r->str('last_name'), 'email' => mb_strtolower($r->str('email'))];
+        $fail = function (array $errors) use ($d): void {
+            $this->registerView(['errors' => $errors, 'old' => $d], 422);
+        };
+
+        // Limitació per IP (5 registres per hora) i camp trampa per a bots.
+        $key = 'register:' . $r->ip();
+        $since = date('Y-m-d H:i:s', time() - 3600);
+        if ((int) Db::value('SELECT COUNT(*) FROM login_attempts WHERE identifier = ? AND created_at >= ?', [$key, $since]) >= 5) {
+            $fail(['captcha' => 'Massa intents de registre. Torna-ho a provar d\'aquí a una estona.']);
+            return;
+        }
+        if ($r->str('website') !== '') {
+            $this->done('Registre rebut.', '/acces', 'info');
+        }
+        Db::insert('login_attempts', ['identifier' => $key, 'ip_address' => $r->ip(), 'created_at' => Db::now()]);
+
+        $v = (new Validator($r->post + ['password' => $r->input('password', '')]))
+            ->required('first_name', 'Nom')->maxLen('first_name', 'Nom', 80)
+            ->required('last_name', 'Cognoms')->maxLen('last_name', 'Cognoms', 120)
+            ->email('email', 'Correu electrònic')
+            ->password('password', 'password_confirmation', 10);
+        $expected = (string) Session::pull('captcha_answer', '');
+        if ($expected === '' || !hash_equals($expected, trim((string) $r->input('captcha', '')))) {
+            $v->error('captcha', 'La resposta de la comprovació no és correcta.');
+        }
+        if (!$v->fails() && User::emailTaken($d['email'], null)) {
+            $v->error('email', 'Ja existeix un usuari amb aquest correu electrònic.');
+        }
+        if ($v->fails()) {
+            $fail($v->errors());
+            return;
+        }
+
+        try {
+            $id = User::register($d, (string) $r->input('password'));
+        } catch (\PDOException) {
+            $fail(['email' => 'Ja existeix un usuari amb aquest correu electrònic.']);
+            return;
+        }
+        AuditService::log('trainer_registered', 'user', $id, 'ok', null, $id);
+        NotificationService::notifyAdminsNewRegistration(['id' => $id] + $d);
+        $this->done('Registre completat. Un administrador t\'assignarà un equip i activarà el compte; rebràs un correu quan estigui llest.', '/acces');
+    }
+
     public function showForgot(Request $r, array $p): void
     {
         $this->render('auth/forgot', ['title' => 'Has oblidat la contrasenya?'], 200, 'auth');

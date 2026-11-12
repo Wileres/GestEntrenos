@@ -19,7 +19,7 @@ final class User
     public static function findTrainer(int $id): ?array
     {
         return Db::one(
-            'SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active, u.notes, u.notify_email, u.password_hash IS NOT NULL AS has_password, u.last_login_at, u.created_at '
+            'SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active, u.pending_approval, u.notes, u.notify_email, u.password_hash IS NOT NULL AS has_password, u.last_login_at, u.created_at '
             . self::TRAINER_FROM . ' WHERE u.id = ?',
             [$id]
         );
@@ -48,7 +48,7 @@ final class User
         $total = (int) Db::value('SELECT COUNT(*) ' . self::TRAINER_FROM . " WHERE $w", $params);
         $pg = Paginator::make($total, $page);
         $rows = Db::all(
-            'SELECT u.id, u.first_name, u.last_name, u.email, u.is_active, u.password_hash IS NOT NULL AS has_password,
+            'SELECT u.id, u.first_name, u.last_name, u.email, u.is_active, u.pending_approval, u.password_hash IS NOT NULL AS has_password,
                     (SELECT COUNT(*) FROM user_teams WHERE user_id = u.id) AS teams_count '
             . self::TRAINER_FROM . " WHERE $w ORDER BY u.last_name, u.first_name LIMIT {$pg->perPage} OFFSET {$pg->offset}",
             $params
@@ -139,6 +139,30 @@ final class User
             Db::run('DELETE FROM user_roles WHERE user_id = ?', [$id]);
             Db::run('DELETE FROM users WHERE id = ?', [$id]);
         });
+    }
+
+    /** Crea un entrenador auto-registrat: inactiu i pendent d'aprovació. */
+    public static function register(array $d, string $password): int
+    {
+        return Db::transaction(function () use ($d, $password) {
+            $id = Db::insert('users', [
+                'first_name' => $d['first_name'], 'last_name' => $d['last_name'], 'email' => mb_strtolower($d['email']),
+                'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'is_active' => 0, 'pending_approval' => 1,
+                'must_change_password' => 0, 'created_at' => Db::now(), 'updated_at' => Db::now(),
+            ]);
+            Db::insert('user_roles', ['user_id' => $id, 'role_id' => 2]);
+            return $id;
+        });
+    }
+
+    public static function approve(int $id): void
+    {
+        Db::update('users', ['is_active' => 1, 'pending_approval' => 0, 'updated_at' => Db::now()], 'id = ?', [$id]);
+    }
+
+    public static function countPending(): int
+    {
+        return (int) Db::value('SELECT COUNT(*) ' . self::TRAINER_FROM . ' WHERE u.pending_approval = 1');
     }
 
     public static function setNotifyEmail(int $id, bool $on): void

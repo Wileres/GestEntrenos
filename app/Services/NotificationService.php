@@ -21,6 +21,35 @@ final class NotificationService
         );
     }
 
+    /** Avisa tots els administradors actius (correu + notificació) d'un nou registre. */
+    public static function notifyAdminsNewRegistration(array $trainer): void
+    {
+        $name = trim($trainer['first_name'] . ' ' . $trainer['last_name']);
+        $admins = Db::all(
+            "SELECT u.id, u.first_name, u.last_name, u.email FROM users u
+             JOIN user_roles ur ON ur.user_id = u.id JOIN roles r ON r.id = ur.role_id AND r.name = 'admin'
+             WHERE u.is_active = 1 AND u.password_hash IS NOT NULL"
+        );
+        foreach ($admins as $a) {
+            Notifier::notify((int) $a['id'], 'Nou registre d\'entrenador', $name . ' espera que li assignis un equip i activis el compte.', '/entrenadors/' . $trainer['id'] . '/editar');
+            if (!empty($a['email'])) {
+                MailService::send('registration_admin', $a['email'], $a['first_name'] . ' ' . $a['last_name'], 'Nou entrenador pendent d\'aprovar · ' . SettingsService::clubName(), 'registration_admin', [
+                    'first_name' => $a['first_name'], 'trainer_name' => $name, 'trainer_email' => $trainer['email'],
+                    'link' => absolute_url('/entrenadors/' . $trainer['id'] . '/editar'),
+                ]);
+            }
+        }
+    }
+
+    public static function sendApproved(array $user): bool
+    {
+        return MailService::send(
+            'registration_approved', (string) $user['email'], $user['first_name'] . ' ' . ($user['last_name'] ?? ''),
+            'El teu compte ja està activat · ' . SettingsService::clubName(), 'approved',
+            ['first_name' => $user['first_name'], 'link' => absolute_url('/acces')]
+        );
+    }
+
     public static function sendReset(array $user, string $token): bool
     {
         return MailService::send(

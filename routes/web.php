@@ -32,6 +32,8 @@ return static function (Router $r): void {
     // Públiques
     $r->get('/acces', [AuthController::class, 'showLogin'], ['guest']);
     $r->post('/acces', [AuthController::class, 'login'], ['guest']);
+    $r->get('/registre', [AuthController::class, 'showRegister'], ['guest']);
+    $r->post('/registre', [AuthController::class, 'register'], ['guest']);
     $r->get('/contrasenya/oblidada', [AuthController::class, 'showForgot'], ['guest']);
     $r->post('/contrasenya/oblidada', [AuthController::class, 'forgot'], ['guest']);
     $r->get('/contrasenya/restablir/{token}', [AuthController::class, 'showReset']);
