@@ -40,6 +40,7 @@ $club = \App\Services\SettingsService::clubName();
     <div class="drawer-links">
         <a href="<?= e(url('/')) ?>"<?= $active('/') ?>><?= icon('home') ?>Inici</a>
         <a href="<?= e(url('/assistencia')) ?>"<?= $active('/assistencia') ?>><?= icon('check') ?>Passa llista</a>
+        <a href="<?= e(url('/estadistiques')) ?>"<?= $active('/estadistiques') ?>><?= icon('list') ?>Estadístiques</a>
         <a href="<?= e(url('/entrenaments')) ?>"<?= $active('/entrenaments') ?>><?= icon('calendar') ?>Entrenaments</a>
         <a href="<?= e(url('/exercicis')) ?>"<?= $active('/exercicis') ?>><?= icon('ball') ?>Exercicis</a>
         <?php if ($user && !$admin): $unread = \App\Services\Notifier::unreadCount((int) $user['id']); ?>

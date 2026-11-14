@@ -1,5 +1,6 @@
 <nav class="breadcrumb"><a href="<?= e(url('/')) ?>">Inici</a> / <?= e($team['name']) ?></nav>
 <div class="page-head"><h1><?= e($team['name']) ?></h1>
+<div class="form-actions"><a class="btn btn-secondary" href="<?= e(url('/estadistiques/equip/' . $team['id'])) ?>"><?= icon('list') ?>Estadístiques</a></div>
 <?php if (is_admin()): ?><div class="form-actions"><a class="btn btn-secondary" href="<?= e(url('/equips/' . $team['id'] . '/editar')) ?>"><?= icon('edit') ?>Edita</a><a class="btn btn-secondary" href="<?= e(url('/assistencia/equip/' . $team['id'])) ?>"><?= icon('list') ?>Assistència</a></div><?php endif; ?></div>
 <p class="muted"><?= $team['category_name'] ? 'Categoria ' . e($team['category_name']) . ' · ' : '' ?><?= $schedule ? 'Entrena: ' . e(\App\Models\Schedule::summary($schedule)) : 'Sense horari definit' ?><?= $trainers ? ' · Entrenadors: ' . e(implode(', ', array_map(fn ($t) => $t['first_name'] . ' ' . $t['last_name'], $trainers))) : '' ?></p>
 <section class="card">

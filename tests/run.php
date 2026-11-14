@@ -1018,6 +1018,72 @@ $login = (new Client($base))->get('/acces')['body'];
 t('Només es precarrega el pes principal (latin)', substr_count($login, 'rel="preload"') === 1 && str_contains($login, 'inter-latin.woff2') && !str_contains($login, 'fonts.googleapis'));
 t('El service worker precarrega la tipografia per al mode sense connexió', str_contains((new Client($base))->get('/service-worker.js')['body'], 'inter-latin.woff2'));
 
+section('Estadístiques de retards i faltes per jugador');
+$now = Db::now();
+$tA = (int) Db::insert('teams', ['name' => 'Estad A', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now]);
+$tB = (int) Db::insert('teams', ['name' => 'Estad B', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now]);
+Db::insert('user_teams', ['user_id' => $annaId, 'team_id' => $tA]);
+$mkPlayer = fn (string $n, int $team, int $active = 1): int => (int) Db::insert('players', ['full_name' => $n, 'birth_date' => null, 'team_id' => $team, 'is_active' => $active, 'created_at' => $now, 'updated_at' => $now]);
+$ada = $mkPlayer('Ada Tard', $tA);
+$biel = $mkPlayer('Biel Falta', $tA);
+$cesc = $mkPlayer('Cesc Perfecte', $tA);
+$dani = $mkPlayer('Dani Inactiu', $tA, 0);
+$xss = $mkPlayer('<b>Negreta</b>', $tA);
+$eva = $mkPlayer('Eva Altre', $tB);
+$mkSession = fn (int $team, string $date, string $status = 'scheduled'): int => (int) Db::insert('attendance_sessions', ['team_id' => $team, 'session_date' => $date, 'start_time' => '18:00:00', 'duration_minutes' => 90, 'status' => $status, 'source' => 'manual', 'created_at' => $now]);
+$mark = function (int $session, array $statuses) use ($now): void {
+    foreach ($statuses as $player => $st) {
+        Db::insert('attendance_records', ['session_id' => $session, 'player_id' => $player, 'status' => $st, 'marked_by' => 1, 'marked_at' => $now]);
+    }
+};
+$d = fn (int $days): string => date('Y-m-d', strtotime("-$days days"));
+$mark($mkSession($tA, $d(7)), [$ada => 'late', $biel => 'absent', $cesc => 'present']);
+$mark($mkSession($tA, $d(14)), [$ada => 'late', $biel => 'absent', $cesc => 'present']);
+$mark($mkSession($tA, $d(21)), [$ada => 'absent', $biel => 'absent', $cesc => 'present']);
+$mark($mkSession($tA, $d(28)), [$ada => 'present', $biel => 'present', $cesc => 'present']);
+$mark($mkSession($tA, $d(35), 'cancelled'), [$biel => 'absent', $ada => 'absent']);
+$mark($mkSession($tB, $d(7)), [$eva => 'absent']);
+$qs = '?from=' . urlencode($d(60)) . '&to=' . urlencode(date('Y-m-d'));
+
+$a = $admin->get('/estadistiques' . $qs);
+t('El gestor veu l\'estadística de tots els equips', $a['status'] === 200 && str_contains($a['body'], 'Estad A') && str_contains($a['body'], 'Estad B'));
+$r = $anna->get('/estadistiques' . $qs);
+t('L\'entrenador només veu els seus equips', $r['status'] === 200 && str_contains($r['body'], 'Estad A') && !str_contains($r['body'], 'Estad B'));
+t('Hi ha l\'entrada «Estadístiques» al menú dels dos rols', str_contains($a['body'], 'href="/estadistiques"') && str_contains($r['body'], 'href="/estadistiques"'));
+t('Cal haver iniciat sessió', (new Client($base))->get('/estadistiques')['status'] === 303 && (new Client($base))->get("/estadistiques/jugador/$ada")['status'] === 303);
+
+$r = $anna->get("/estadistiques/equip/$tA" . $qs);
+t('L\'entrenador veu l\'estadística del seu equip', $r['status'] === 200 && str_contains($r['body'], 'Ada Tard') && str_contains($r['body'], 'Biel Falta') && str_contains($r['body'], 'Cesc Perfecte'));
+t('Els jugadors inactius no apareixen a l\'equip', !str_contains($r['body'], 'Dani Inactiu'));
+t('Les files es poden ordenar: per defecte, qui té més faltes primer', strpos($r['body'], 'Biel Falta') < strpos($r['body'], 'Ada Tard') && strpos($r['body'], 'Ada Tard') < strpos($r['body'], 'Cesc Perfecte'));
+$byLate = $anna->get("/estadistiques/equip/$tA" . $qs . '&ordre=tard')['body'];
+t('Ordenar per retards posa primer qui més n\'ha fet', strpos($byLate, 'Ada Tard') < strpos($byLate, 'Biel Falta'));
+t('Els totals de l\'equip no compten els entrenaments cancel·lats', preg_match('/<span class="stat-n">4<\/span><span>Faltes<\/span>/', $r['body']) === 1 && preg_match('/<span class="stat-n">2<\/span><span>Retards<\/span>/', $r['body']) === 1);
+t('Els noms de jugador s\'escapen (XSS)', !str_contains($r['body'], '<b>Negreta</b>') && str_contains($r['body'], '&lt;b&gt;Negreta'));
+t('L\'entrenador no pot veure l\'equip d\'un altre', $anna->get("/estadistiques/equip/$tB" . $qs)['status'] === 404);
+t('El gestor pot veure qualsevol equip', $admin->get("/estadistiques/equip/$tB" . $qs)['status'] === 200);
+
+$r = $anna->get("/estadistiques/jugador/$ada" . $qs);
+t('Fitxa d\'estadística d\'un jugador del seu equip', $r['status'] === 200 && str_contains($r['body'], 'Ada Tard'));
+t('Compta les vegades que no ha vingut i que ha arribat tard', preg_match('/<span class="stat-n">1<\/span><span>Vegades que no ha vingut<\/span>/', $r['body']) === 1
+    && preg_match('/<span class="stat-n">2<\/span><span>Vegades que ha arribat tard<\/span>/', $r['body']) === 1);
+t('Calcula el percentatge d\'assistència (3 de 4)', str_contains($r['body'], '75 %'));
+t('Detalla cada retard i falta amb la data', substr_count($r['body'], 'Ha arribat tard</span>') === 2 && substr_count($r['body'], 'No ha vingut</span>') === 1 && str_contains($r['body'], fmt_date($d(7))));
+t('Un jugador sense incidències ho mostra', str_contains($anna->get("/estadistiques/jugador/$cesc" . $qs)['body'], 'Cap retard ni cap falta'));
+$b = $anna->get("/estadistiques/jugador/$biel" . $qs)['body'];
+t('Les faltes d\'un entrenament cancel·lat no compten', preg_match('/<span class="stat-n">3<\/span><span>Vegades que no ha vingut<\/span>/', $b) === 1);
+t('L\'entrenador no pot veure jugadors d\'altres equips', $anna->get("/estadistiques/jugador/$eva" . $qs)['status'] === 404);
+t('El gestor veu jugadors de qualsevol equip', $admin->get("/estadistiques/jugador/$eva" . $qs)['status'] === 200);
+t('Un jugador inexistent o un identificador invàlid → 404', $admin->get('/estadistiques/jugador/999999')['status'] === 404 && $admin->get('/estadistiques/jugador/abc')['status'] === 404);
+$r = $anna->get("/estadistiques/jugador/$ada?from=" . urlencode(date('Y-m-d')) . '&to=' . urlencode(date('Y-m-d')));
+t('El filtre de dates limita el període', str_contains($r['body'], 'encara no hi ha cap assistència marcada'));
+t('Les dates invàlides s\'ignoren (s\'usa la temporada)', $anna->get("/estadistiques/jugador/$ada?from=foo&to=bar'--")['status'] === 200);
+Db::run('DELETE FROM attendance_records WHERE player_id IN (?, ?, ?, ?, ?, ?)', [$ada, $biel, $cesc, $dani, $xss, $eva]);
+Db::run('DELETE FROM attendance_sessions WHERE team_id IN (?, ?)', [$tA, $tB]);
+Db::run('DELETE FROM players WHERE team_id IN (?, ?)', [$tA, $tB]);
+Db::run('DELETE FROM user_teams WHERE team_id IN (?, ?)', [$tA, $tB]);
+Db::run('DELETE FROM teams WHERE id IN (?, ?)', [$tA, $tB]);
+
 section('Sessions, desactivació i tancament');
 Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$annaId]);
 t('Un entrenador desactivat perd l\'accés immediatament', $anna->get('/')['status'] === 303);

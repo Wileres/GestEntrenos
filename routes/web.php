@@ -16,6 +16,7 @@ use App\Controllers\IdentityController;
 use App\Controllers\NotificationController;
 use App\Controllers\PlayerController;
 use App\Controllers\PwaController;
+use App\Controllers\StatisticsController;
 use App\Controllers\TeamController;
 use App\Controllers\TrainerController;
 use App\Controllers\TrainingController;
@@ -75,6 +76,9 @@ return static function (Router $r): void {
     $r->post('/jugadors/{id}/eliminar', [PlayerController::class, 'delete'], ['admin']);
 
     // Assistència
+    $r->get('/estadistiques', [StatisticsController::class, 'index'], ['auth']);
+    $r->get('/estadistiques/equip/{id}', [StatisticsController::class, 'team'], ['auth']);
+    $r->get('/estadistiques/jugador/{id}', [StatisticsController::class, 'player'], ['auth']);
     $r->get('/assistencia', [AttendanceController::class, 'index'], ['auth']);
     $r->get('/assistencia/resum', [AttendanceReportController::class, 'week'], ['admin']);
     $r->get('/assistencia/equip/{id}', [AttendanceReportController::class, 'team'], ['admin']);

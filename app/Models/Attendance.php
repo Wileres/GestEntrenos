@@ -145,6 +145,86 @@ final class Attendance
         return ['sessions' => $sessions, 'rows' => $rows];
     }
 
+    /** Equips que pot consultar l'usuari: tots (gestor) o només els seus (entrenador). */
+    public static function teamsFor(array $user): array
+    {
+        if ($user['role'] === 'admin') {
+            return Db::all('SELECT id, name FROM teams WHERE is_active = 1 ORDER BY name');
+        }
+        return Db::all('SELECT t.id, t.name FROM teams t JOIN user_teams ut ON ut.team_id = t.id WHERE ut.user_id = ? ORDER BY t.name', [$user['id']]);
+    }
+
+    public static function mayViewTeam(array $user, int $teamId): bool
+    {
+        if ($user['role'] === 'admin') {
+            return true;
+        }
+        return (bool) Db::value('SELECT 1 FROM user_teams WHERE user_id = ? AND team_id = ?', [$user['id'], $teamId]);
+    }
+
+    /** Primer dia de la temporada en curs (1 de setembre). */
+    public static function seasonStart(): string
+    {
+        return ((int) date('Y') - ((int) date('n') >= 8 ? 0 : 1)) . '-09-01';
+    }
+
+    /**
+     * Resum per equip: jugadors actius, entrenaments amb llista passada i total d'assistències, retards i faltes.
+     *
+     * @param int[] $teamIds
+     */
+    public static function overview(array $teamIds, string $from, string $to): array
+    {
+        if (!$teamIds) {
+            return [];
+        }
+        $in = Db::in($teamIds);
+        return Db::all(
+            "SELECT t.id, t.name,
+                    (SELECT COUNT(*) FROM players p WHERE p.team_id = t.id AND p.is_active = 1) AS players,
+                    (SELECT COUNT(*) FROM attendance_sessions s WHERE s.team_id = t.id AND s.status = 'scheduled' AND s.session_date BETWEEN ? AND ?
+                        AND EXISTS (SELECT 1 FROM attendance_records r WHERE r.session_id = s.id)) AS sessions,
+                    COALESCE(SUM(x.status = 'present'), 0) AS present, COALESCE(SUM(x.status = 'late'), 0) AS late, COALESCE(SUM(x.status = 'absent'), 0) AS absent
+             FROM teams t
+             LEFT JOIN (SELECT s.team_id, r.status FROM attendance_records r JOIN attendance_sessions s ON s.id = r.session_id
+                        JOIN players p ON p.id = r.player_id AND p.team_id = s.team_id AND p.is_active = 1
+                        WHERE s.status = 'scheduled' AND s.session_date BETWEEN ? AND ?) x ON x.team_id = t.id
+             WHERE t.id IN ($in) GROUP BY t.id, t.name ORDER BY t.name",
+            [$from, $to, $from, $to, ...$teamIds]
+        );
+    }
+
+    /**
+     * Estadística d'un jugador en un període: totals, detall de retards i faltes i resum per mesos.
+     * Només compten els entrenaments no cancel·lats on s'ha marcat l'assistència del jugador.
+     *
+     * @return array{present:int,late:int,absent:int,total:int,percent:?int,incidents:array,months:array}
+     */
+    public static function playerStats(int $playerId, string $from, string $to): array
+    {
+        $rows = Db::all(
+            "SELECT s.session_date, s.start_time, t.name AS team_name, r.status
+             FROM attendance_records r JOIN attendance_sessions s ON s.id = r.session_id AND s.status = 'scheduled'
+             JOIN teams t ON t.id = s.team_id
+             WHERE r.player_id = ? AND s.session_date BETWEEN ? AND ? ORDER BY s.session_date DESC, s.start_time DESC",
+            [$playerId, $from, $to]
+        );
+        $out = ['present' => 0, 'late' => 0, 'absent' => 0, 'total' => 0, 'percent' => null, 'incidents' => [], 'months' => []];
+        foreach ($rows as $r) {
+            $out[$r['status']]++;
+            $out['total']++;
+            $month = substr($r['session_date'], 0, 7);
+            $out['months'][$month] ??= ['present' => 0, 'late' => 0, 'absent' => 0];
+            $out['months'][$month][$r['status']]++;
+            if ($r['status'] !== 'present') {
+                $out['incidents'][] = $r;
+            }
+        }
+        krsort($out['months']);
+        $out['percent'] = $out['total'] ? (int) round(($out['present'] + $out['late']) * 100 / $out['total']) : null;
+        return $out;
+    }
+
     public static function absencesThisWeek(): int
     {
         $mon = date('Y-m-d', strtotime('monday this week'));
