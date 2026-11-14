@@ -1,7 +1,11 @@
 <nav class="breadcrumb" aria-label="Migues de pa"><a href="<?= e(url('/entrenadors')) ?>">Entrenadors</a> / <?= e($title) ?></nav>
 <h1><?= e($title) ?></h1>
 <?php if ($trainer && (int) $trainer['pending_approval']): ?>
+    <?php if ((int) $trainer['has_password']): ?>
 <div class="alert alert-warning" role="status">Aquest entrenador s'ha registrat ell mateix i està pendent d'aprovació. Assigna-li almenys un equip, marca «Compte actiu» i desa: rebrà un correu d'avís.</div>
+    <?php else: ?>
+<div class="alert alert-warning" role="status">Aquest entrenador s'ha importat i està pendent d'equip. Assigna-li almenys un equip i desa: rebrà un correu per definir la contrasenya i el compte quedarà activat.</div>
+    <?php endif; ?>
 <?php endif; ?>
 <form method="post" action="<?= e(url($trainer ? '/entrenadors/' . $trainer['id'] : '/entrenadors')) ?>" class="stack" data-loading>
     <?= csrf_field() ?>

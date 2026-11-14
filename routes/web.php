@@ -111,6 +111,11 @@ return static function (Router $r): void {
 
     // Administració
     $r->get('/entrenadors', [TrainerController::class, 'index'], ['admin']);
+    $r->get('/entrenadors/importa', [TrainerController::class, 'importForm'], ['admin']);
+    $r->post('/entrenadors/importa', [TrainerController::class, 'importPreview'], ['admin']);
+    $r->post('/entrenadors/importa/confirma', [TrainerController::class, 'importConfirm'], ['admin']);
+    $r->get('/entrenadors/plantilla', [TrainerController::class, 'template'], ['admin']);
+    $r->post('/entrenadors/assigna', [TrainerController::class, 'bulkAssign'], ['admin']);
     $r->get('/entrenadors/nou', [TrainerController::class, 'create'], ['admin']);
     $r->post('/entrenadors', [TrainerController::class, 'store'], ['admin']);
     $r->get('/entrenadors/{id}/editar', [TrainerController::class, 'edit'], ['admin']);

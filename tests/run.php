@@ -929,6 +929,95 @@ t('Un equip amb jugadors no es pot eliminar', (function () use ($admin, $catCade
 })());
 t('Sessió anònima no accedeix a l\'assistència', (new Client($base))->get('/assistencia')['status'] === 303);
 
+section('Importació d\'entrenadors: pendents fins que se\'ls assigna un equip');
+use App\Services\TrainerImport;
+$parsed = TrainerImport::parseText("Nom i cognoms;Correu\nJoan Pons Vila; joan.pons@import.cat\nmarta.sala@import.cat, Marta Sala Roca\nSense correu aquí\nRepetit Pons; JOAN.PONS@import.cat\nNúria; nuria@import.cat\nX Y; correu-malament@\n<Pere Vila> pere@import.cat");
+$emails = array_column($parsed['rows'], 'email');
+t('L\'anàlisi troba els correus (en qualsevol columna) i salta la capçalera', $emails === ['joan.pons@import.cat', 'marta.sala@import.cat', 'nuria@import.cat', 'pere@import.cat'], implode(',', $emails));
+t('El nom es divideix en nom i cognoms', $parsed['rows'][0]['first_name'] === 'Joan' && $parsed['rows'][0]['last_name'] === 'Pons Vila' && $parsed['rows'][2]['last_name'] === '');
+t('Les files incorrectes o repetides es notifiquen', count($parsed['errors']) === 3);
+$mailsBefore = (int) Db::value('SELECT COUNT(*) FROM email_logs');
+$list = "Nom i cognoms;Correu electrònic\nJoan Pons Vila;joan.pons@import.cat\nMarta Sala Roca;marta.sala@import.cat\nNúria Ràfols;nuria@import.cat\nPere Vila Soler;pere@import.cat";
+$r = $admin->post('/entrenadors/importa', ['text' => $list], '/entrenadors/importa');
+t('Previsualització de la importació', $r['status'] === 200 && str_contains($r['body'], 'Entrenadors nous') && str_contains($r['body'], 'joan.pons@import.cat'));
+t('La previsualització encara no crea res', (int) Db::value("SELECT COUNT(*) FROM users WHERE email LIKE '%@import.cat'") === 0);
+t('Un entrenador no pot importar', $anna->post('/entrenadors/importa', ['text' => $list], '/exercicis')['status'] === 403);
+$r = $admin->post('/entrenadors/importa/confirma', [], '/entrenadors/importa');
+t('Confirmar la importació crea els entrenadors', $r['status'] === 303 && (int) Db::value("SELECT COUNT(*) FROM users WHERE email LIKE '%@import.cat'") === 4);
+$joan = Db::one("SELECT * FROM users WHERE email = 'joan.pons@import.cat'");
+t('Queden pendents: sense contrasenya, inactius i sense equips', $joan['password_hash'] === null && (int) $joan['is_active'] === 0 && (int) $joan['pending_approval'] === 1
+    && (int) Db::value('SELECT COUNT(*) FROM user_teams WHERE user_id = ?', [$joan['id']]) === 0);
+t('No s\'envia cap correu ni es crea cap enllaç en importar', (int) Db::value('SELECT COUNT(*) FROM email_logs') === $mailsBefore
+    && (int) Db::value("SELECT COUNT(*) FROM activation_tokens WHERE user_id = ?", [$joan['id']]) === 0);
+t('Tenen el rol d\'entrenador', Db::value('SELECT r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ?', [$joan['id']]) === 'trainer');
+t('No poden iniciar sessió mentre són pendents', (new Client($base))->login('joan.pons@import.cat', 'QualsevolCosa123')['status'] === 422);
+$g = new Client($base);
+$g->post('/contrasenya/oblidada', ['email' => 'joan.pons@import.cat'], '/contrasenya/oblidada');
+t('La recuperació de contrasenya no els activa', (int) Db::value('SELECT COUNT(*) FROM password_reset_tokens WHERE user_id = ?', [$joan['id']]) === 0);
+$r = $admin->post('/entrenadors/importa', ['text' => $list], '/entrenadors/importa');
+t('Tornar a importar els mateixos correus no els duplica', str_contains($r['body'], 'Ja existents') && $admin->post('/entrenadors/importa/confirma', [], '/entrenadors/importa')['status'] === 303
+    && (int) Db::value("SELECT COUNT(*) FROM users WHERE email LIKE '%@import.cat'") === 4);
+$list = $admin->get('/entrenadors?status=pending')['body'];
+t('El llistat filtra els pendents i mostra l\'estat', str_contains($list, 'Pendent d\'assignar equip') && str_contains($list, 'bulk-assign'));
+
+// Fitxer CSV en Windows-1252
+$csv = $tmp . '/entrenadors.csv';
+file_put_contents($csv, mb_convert_encoding("Nom;Correu\nJaume Bosch Ràfols;jaume@import.cat\n", 'Windows-1252', 'UTF-8'));
+$admin->request('POST', '/entrenadors/importa', ['_csrf' => $admin->csrf('/entrenadors/importa'), 'file' => new CURLFile($csv, 'text/csv', 'entrenadors.csv')]);
+$admin->post('/entrenadors/importa/confirma', [], '/entrenadors/importa');
+t('S\'importa un CSV i es converteixen els accents', Db::value("SELECT last_name FROM users WHERE email = 'jaume@import.cat'") === 'Bosch Ràfols');
+$bad = $tmp . '/entrenadors.exe';
+file_put_contents($bad, 'MZ');
+$r = $admin->request('POST', '/entrenadors/importa', ['_csrf' => $admin->csrf('/entrenadors/importa'), 'file' => new CURLFile($bad, 'application/octet-stream', 'entrenadors.exe')]);
+t('Un format no admès es rebutja', $r['status'] === 422);
+
+// Assignar un equip activa l'entrenador i li envia l'enllaç per definir la contrasenya
+$teamA = (int) Db::value('SELECT id FROM teams ORDER BY id LIMIT 1');
+$teamB = (int) Db::value('SELECT id FROM teams ORDER BY id LIMIT 1 OFFSET 1') ?: $teamA;
+$jid = (int) $joan['id'];
+$fields = ['first_name' => 'Joan', 'last_name' => 'Pons Vila', 'email' => 'joan.pons@import.cat', 'phone' => '', 'notes' => ''];
+$mailsBefore = (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE type = 'activation'");
+$admin->post("/entrenadors/$jid", $fields, "/entrenadors/$jid/editar");
+t('Desar sense equips el deixa pendent i sense correu', (int) Db::value('SELECT pending_approval FROM users WHERE id = ?', [$jid]) === 1
+    && (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE type = 'activation'") === $mailsBefore);
+$r = $admin->post("/entrenadors/$jid", $fields + ['team_ids' => [$teamA]], "/entrenadors/$jid/editar");
+$joan = Db::one('SELECT * FROM users WHERE id = ?', [$jid]);
+t('Assignar un equip l\'activa i el treu de pendents', $r['status'] === 303 && (int) $joan['is_active'] === 1 && (int) $joan['pending_approval'] === 0);
+t('En assignar-li l\'equip es crea l\'enllaç i s\'envia el correu d\'activació', (int) Db::value('SELECT COUNT(*) FROM activation_tokens WHERE user_id = ? AND used_at IS NULL AND revoked_at IS NULL', [$jid]) === 1
+    && (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE type = 'activation' AND recipient = 'joan.pons@import.cat'") === 1);
+t('Encara no pot entrar fins que defineixi la contrasenya', (new Client($base))->login('joan.pons@import.cat', 'QualsevolCosa123')['status'] === 422);
+$tok = TokenService::createActivation($jid);
+$jc = new Client($base);
+$jc->post("/activar/$tok", ['password' => 'Joan2026ok', 'password_confirmation' => 'Joan2026ok'], "/activar/$tok");
+$r = $jc->login('joan.pons@import.cat', 'Joan2026ok');
+t('En definir la contrasenya queda activat i pot entrar', $r['status'] === 303 && !str_contains($jc->get('/')['location'], 'acces'));
+
+// Assignació en bloc
+$ids = array_map('intval', Db::column("SELECT id FROM users WHERE email IN ('marta.sala@import.cat', 'nuria@import.cat') ORDER BY id"));
+$r = $admin->post('/entrenadors/assigna', ['trainer_ids' => $ids, 'team_ids' => [$teamA, $teamB]], '/entrenadors?status=pending');
+t('Assignació en bloc: activa els seleccionats i envia els correus', $r['status'] === 303 && (int) Db::value('SELECT COUNT(*) FROM users WHERE id IN (' . implode(',', $ids) . ') AND pending_approval = 0 AND is_active = 1') === 2
+    && (int) Db::value("SELECT COUNT(*) FROM email_logs WHERE type = 'activation' AND recipient IN ('marta.sala@import.cat', 'nuria@import.cat')") === 2);
+$peId = (int) Db::value("SELECT id FROM users WHERE email = 'pere@import.cat'");
+$admin->post('/entrenadors/assigna', ['trainer_ids' => [$peId]], '/entrenadors?status=pending');
+t('Sense equip no s\'activa ningú en bloc', (int) Db::value('SELECT pending_approval FROM users WHERE id = ?', [$peId]) === 1);
+t('Un entrenador no pot assignar en bloc', $anna->post('/entrenadors/assigna', ['trainer_ids' => [$peId], 'team_ids' => [$teamA]], '/exercicis')['status'] === 403
+    && (int) Db::value('SELECT pending_approval FROM users WHERE id = ?', [$peId]) === 1);
+t('La importació queda auditada', (int) Db::value("SELECT COUNT(*) FROM audit_logs WHERE action = 'trainers_imported'") >= 2);
+Db::run("DELETE ur FROM user_roles ur JOIN users u ON u.id = ur.user_id WHERE u.email LIKE '%@import.cat'");
+Db::run("DELETE FROM user_teams WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@import.cat')");
+Db::run("DELETE FROM users WHERE email LIKE '%@import.cat'");
+
+section('Tipografia');
+$css = (string) file_get_contents(BASE_PATH . '/public/assets/css/app.css');
+t('La tipografia és Inter, allotjada al projecte i amb font-display: swap', str_contains($css, '--font: "Inter"') && str_contains($css, 'inter-latin.woff2') && str_contains($css, 'inter-latin-ext.woff2')
+    && substr_count($css, 'font-display: swap') === 2 && !str_contains($css, '"Roboto"') && !str_contains($css, 'Google Sans'));
+t('Els fitxers woff2 d\'Inter existeixen (latin i latin-ext) i són vàlids', str_starts_with((string) file_get_contents(BASE_PATH . '/public/assets/fonts/inter-latin.woff2'), 'wOF2')
+    && str_starts_with((string) file_get_contents(BASE_PATH . '/public/assets/fonts/inter-latin-ext.woff2'), 'wOF2'));
+t('Els camps de formulari tenen un mínim de 16px', str_contains($css, 'input, select, textarea { font-size: max(1rem, 16px); }'));
+$login = (new Client($base))->get('/acces')['body'];
+t('Només es precarrega el pes principal (latin)', substr_count($login, 'rel="preload"') === 1 && str_contains($login, 'inter-latin.woff2') && !str_contains($login, 'fonts.googleapis'));
+t('El service worker precarrega la tipografia per al mode sense connexió', str_contains((new Client($base))->get('/service-worker.js')['body'], 'inter-latin.woff2'));
+
 section('Sessions, desactivació i tancament');
 Db::run('UPDATE users SET is_active = 0 WHERE id = ?', [$annaId]);
 t('Un entrenador desactivat perd l\'accés immediatament', $anna->get('/')['status'] === 303);

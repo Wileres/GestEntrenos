@@ -1,52 +1,16 @@
 /* Entrenaments JSPM - estils propis (sense frameworks) */
+/* Inter (variable, 400-700), allotjada al projecte. Subsets: llatí i llatí estès (ŀ, ·, ç, à, è…). */
 @font-face {
-    font-family: "Google Sans Flex";
-    src: url("../fonts/google-sans-flex-latin.woff2") format("woff2");
+    font-family: "Inter";
+    src: url("../fonts/inter-latin.woff2") format("woff2");
     font-weight: 400 700; font-style: normal; font-display: swap;
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-    font-family: "Google Sans Flex";
-    src: url("../fonts/google-sans-flex-latin-ext.woff2") format("woff2");
+    font-family: "Inter";
+    src: url("../fonts/inter-latin-ext.woff2") format("woff2");
     font-weight: 400 700; font-style: normal; font-display: swap;
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-400.woff2") format("woff2");
-    font-weight: 400; font-style: normal; font-display: swap;
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-ext-400.woff2") format("woff2");
-    font-weight: 400; font-style: normal; font-display: swap;
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-500.woff2") format("woff2");
-    font-weight: 500; font-style: normal; font-display: swap;
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-ext-500.woff2") format("woff2");
-    font-weight: 500; font-style: normal; font-display: swap;
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-700.woff2") format("woff2");
-    font-weight: 700; font-style: normal; font-display: swap;
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-    font-family: "Roboto";
-    src: url("../fonts/roboto-ext-700.woff2") format("woff2");
-    font-weight: 700; font-style: normal; font-display: swap;
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 :root {
@@ -79,22 +43,23 @@
     --shadow: 0 1px 2px rgba(10, 42, 99, .06), 0 2px 8px rgba(10, 42, 99, .05);
     --shadow-pop: 0 10px 30px rgba(10, 42, 99, .18);
     --focus: 0 0 0 3px rgba(18, 80, 184, .4);
-    --font-menu: "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-    --font: "Google Sans Flex", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { font-size: 106.25%; -webkit-text-size-adjust: 100%; scroll-padding-top: 5rem; }
 body { margin: 0; font-family: var(--font); font-size: 1rem; line-height: 1.55; color: var(--text); background: var(--blue-50); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-h1, h2, h3 { font-family: var(--font); letter-spacing: -.015em; }
-h1 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.15rem); font-weight: 700; margin: 0 0 var(--space-3); color: var(--blue-900); line-height: 1.15; }
-h2 { font-size: 1.2rem; font-weight: 700; margin: 0 0 var(--space-3); color: var(--blue-900); line-height: 1.25; }
+h1, h2, h3 { font-family: var(--font); line-height: 1.2; }
+h1 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.15rem); font-weight: 700; margin: 0 0 var(--space-3); color: var(--blue-900); line-height: 1.2; letter-spacing: -.01em; }
+h2 { font-size: 1.2rem; font-weight: 700; margin: 0 0 var(--space-3); color: var(--blue-900); line-height: 1.2; }
 h3 { font-size: 1.02rem; font-weight: 700; margin: var(--space-4) 0 var(--space-2); }
 a { color: var(--blue-600); text-underline-offset: .18em; }
 a:hover { color: var(--blue-900); }
 img { max-width: 100%; height: auto; }
 p { margin: 0 0 var(--space-3); }
 small { font-size: .85rem; }
+button, input, select, textarea { font-family: inherit; }
+input, select, textarea { font-size: max(1rem, 16px); } /* evita el zoom automàtic d'iOS */
 :focus-visible { outline: 2px solid transparent; box-shadow: var(--focus); border-radius: 6px; }
 .muted { color: var(--muted); }
 .center { text-align: center; }
@@ -117,7 +82,7 @@ small { font-size: .85rem; }
 .count { display: inline-block; min-width: 1.5rem; padding: 0 .45rem; margin-left: .25rem; border-radius: 999px; background: var(--blue-100); color: var(--blue-700); font-size: .8rem; font-weight: 700; text-align: center; vertical-align: .1em; }
 
 /* Capçalera i menú hamburguesa (mòbil primer) */
-.app-header, .drawer, .menu-btn { font-family: var(--font-menu); }
+.app-header, .drawer, .menu-btn { font-family: var(--font); }
 .app-header { background: var(--white); color: var(--text); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
 .header-inner { display: flex; align-items: center; gap: var(--space-2); padding-block: .45rem; }
 .brand { display: flex; align-items: center; gap: .6rem; color: var(--blue-900); text-decoration: none; font-weight: 700; font-size: 1.08rem; letter-spacing: -.005em; min-width: 0; flex: 1; }

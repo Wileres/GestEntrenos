@@ -43,7 +43,7 @@ final class PwaController extends Controller
     {
         $file = BASE_PATH . '/app/Views/pwa/service-worker.js';
         $precache = [
-            url('/offline'), asset('css/app.css'), asset('js/app.js'),
+            url('/offline'), asset('css/app.css'), asset('js/app.js'), asset('fonts/inter-latin.woff2'),
             IconService::url('icon-192'), IconService::url('favicon-32'),
         ];
         $version = substr(hash('sha256', implode('|', [

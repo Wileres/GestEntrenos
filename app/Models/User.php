@@ -40,7 +40,9 @@ final class User
             $like = '%' . addcslashes($q, '%_\\') . '%';
             array_push($params, $like, $like, $like);
         }
-        if ($status === 'active' || $status === 'inactive') {
+        if ($status === 'pending') {
+            $where[] = 'u.pending_approval = 1';
+        } elseif ($status === 'active' || $status === 'inactive') {
             $where[] = 'u.is_active = ?';
             $params[] = $status === 'active' ? 1 : 0;
         }
@@ -148,6 +150,19 @@ final class User
             $id = Db::insert('users', [
                 'first_name' => $d['first_name'], 'last_name' => $d['last_name'], 'email' => mb_strtolower($d['email']),
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'is_active' => 0, 'pending_approval' => 1,
+                'must_change_password' => 0, 'created_at' => Db::now(), 'updated_at' => Db::now(),
+            ]);
+            Db::insert('user_roles', ['user_id' => $id, 'role_id' => 2]);
+            return $id;
+        });
+    }
+
+    /** Crea un entrenador importat: sense contrasenya, inactiu i pendent d'assignar-li un equip. */
+    public static function importPending(string $first, string $last, string $email): int
+    {
+        return Db::transaction(function () use ($first, $last, $email) {
+            $id = Db::insert('users', [
+                'first_name' => $first, 'last_name' => $last, 'email' => mb_strtolower($email), 'is_active' => 0, 'pending_approval' => 1,
                 'must_change_password' => 0, 'created_at' => Db::now(), 'updated_at' => Db::now(),
             ]);
             Db::insert('user_roles', ['user_id' => $id, 'role_id' => 2]);

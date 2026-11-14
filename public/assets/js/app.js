@@ -77,6 +77,13 @@
         document.querySelectorAll('.is-loading').forEach(function (b) { b.classList.remove('is-loading'); b.disabled = false; });
         document.querySelectorAll('[data-sending]').forEach(function (f) { delete f.dataset.sending; });
     });
+    // ---- Selecciona-ho tot (llistats amb accions en bloc) ----
+    document.querySelectorAll('[data-select-all]').forEach(function (master) {
+        master.addEventListener('change', function () {
+            document.querySelectorAll('input[name="' + master.getAttribute('data-select-all') + '"]').forEach(function (c) { c.checked = master.checked; });
+        });
+    });
+
     // ---- PWA: Service Worker ----
     var baseMeta = document.querySelector('meta[name="app-base"]');
     var base = baseMeta ? baseMeta.getAttribute('content') : '';

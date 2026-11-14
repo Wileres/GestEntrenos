@@ -35,7 +35,7 @@ public/index.php  →  Router (app/Services/Router.php)  →  Middleware (csrf, 
 
 * **Un sol punt d'entrada** (`public/index.php`), enrutador propi amb rutes a `routes/web.php`.
 * **Helpers** (`app/Helpers`): Env, Config, Db (PDO), Session, Csrf, Crypto (libsodium), Request/Response/View, Paginator.
-* **Menú:** hamburguesa (calaix lateral) amb tipografia Roboto, allotjada a `public/assets/fonts`; funciona també sense JavaScript.
+* **Menú:** hamburguesa (calaix lateral); tipografia Inter (variable, 400–700) allotjada a `public/assets/fonts`; funciona també sense JavaScript.
 * **Serveis** (`app/Services`): autenticació i bloqueig, tokens (SHA-256), fitxers, correu (PHPMailer), notificacions, auditoria, gestió d'errors, instal·lador.
 * **Seguretat**: consultes preparades, CSRF a tots els POST, CSP estricta (sense scripts ni estils inline), cookies `HttpOnly`/`Secure`/`SameSite=Lax`, regeneració de sessió, caducitat per inactivitat, límit d'intents amb bloqueig temporal, `password_hash`/`password_needs_rehash`, tokens amb `random_bytes` guardats com a hash, contrasenya SMTP xifrada amb `APP_KEY`, fitxers fora de `public/` servits per PHP amb comprovació de permisos, errors genèrics i log tècnic a `storage/logs`.
 
@@ -119,6 +119,7 @@ Permisos: `storage/` i `.env` han de ser escrivibles pel servidor web i no acces
 * *Exercicis*: crea'ls assignats a un o més equips (categories), amb dades opcionals i fitxers (PDF, JPG, PNG, WEBP, DOCX, XLSX i MP4 si `ALLOW_MP4=true`).
 * *Entrenaments*: crea'l com a esborrany, afegeix exercicis del catàleg amb els botons *Puja / Baixa / Treu* (funciona sense JavaScript), duració i observacions per exercici. *Publica* notifica per correu els entrenadors afectats (un sol correu per persona). *Cancel·la* també notifica. En editar un entrenament publicat, els canvis de data/hora es notifiquen sempre; la resta, si marques la casella.
 * *Administradors*: crea altres usuaris administradors (reben un correu d'activació); es poden desactivar però mai un mateix ni l'últim actiu.
+* *Entrenadors › Importa*: carrega un llistat (.xlsx, .csv, .txt o text enganxat) amb nom i cognoms i correu. Es veu un resum abans de confirmar. Els entrenadors nous queden **pendents d'equip** (sense correu ni accés). En assignar-los un equip — des de la seva fitxa o en bloc des del filtre «Pendents» — reben un correu per definir la contrasenya i el compte queda activat.
 * *Entrenadors › Elimina*: esborra l'entrenador i les seves assignacions (amb confirmació). Si només vols impedir-li l'accés, desactiva'l.
 * Avís de correus fallits del panell: es pot descartar amb «Descarta l'avís»; tornarà a sortir si hi ha errors nous.
 * *Administració*: configuració del correu, **logotip i icones**, historial de correus i registre d'activitat.
